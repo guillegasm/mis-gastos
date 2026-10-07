@@ -1,17 +1,15 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAK90d0pyAyqnhgLS6gk3ERI_QursBBXHQ",
-  authDomain: "mis-gastos-40ed3.firebaseapp.com",
-  projectId: "mis-gastos-40ed3",
-  storageBucket: "mis-gastos-40ed3.firebasestorage.app",
-  messagingSenderId: "1053024209514",
-  appId: "1:1053024209514:web:a663163f5105a740e45813"
+// ─────────────────────────────────────────────────────────────
+//  Configuración de Firebase (la base de datos online compartida)
+//
+//  Estos valores NO son secretos: pueden estar en un repositorio público.
+//  Lo que protege tus datos son las reglas de Firestore, que dejan
+//  entrar solo a los emails autorizados (ver README.md, sección 1).
+// ─────────────────────────────────────────────────────────────
+window.FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyAK90d0pyAyqnhgLS6gk3ERI_QursBBXHQ',
+  authDomain: 'mis-gastos-40ed3.firebaseapp.com',
+  projectId: 'mis-gastos-40ed3',
+  storageBucket: 'mis-gastos-40ed3.firebasestorage.app',
+  messagingSenderId: '1053024209514',
+  appId: '1:1053024209514:web:a663163f5105a740e45813'
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
