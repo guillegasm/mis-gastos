@@ -1,0 +1,1123 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1B2E">
+<meta name="color-scheme" content="light dark">
+<title>Mis gastos</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mis gastos">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F7FB; --surface:#FFFFFF; --ink:#0E1B2E; --ink-2:#51627A; --line:#DCE3EC;
+  --celeste:#74ACDF; --celeste-deep:#2A68A0; --celeste-wash:#E4EFF9;
+  --sun:#F2B01E; --in:#177A4F; --out:#BE3A26;
+  --hero:#0E1B2E; --on-hero:#F4F8FD; --hero-grid:rgba(116,172,223,.14);
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0A121E; --surface:#122035; --ink:#E8EFF7; --ink-2:#9AAEC6; --line:#223550;
+    --celeste-deep:#8DBDEB; --celeste-wash:#18314F;
+    --in:#4CC38A; --out:#F28570;
+    --hero:#16294A; --hero-grid:rgba(116,172,223,.12);
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.45 var(--font); font-variant-numeric:tabular-nums;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--celeste-deep);outline-offset:2px}
+
+/* ---------- estructura ---------- */
+.app{min-height:100dvh}
+.content{min-width:0}
+.main{max-width:760px;margin:0 auto;padding:4px 16px 24px}
+.main.wide{max-width:1040px}
+.topbar{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:calc(8px + env(safe-area-inset-top)) 12px 8px 16px;
+  background:color-mix(in srgb,var(--paper) 90%,transparent);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+}
+.top-title{font:800 20px/1 var(--font-display);letter-spacing:-.01em}
+.icon-btn{
+  display:inline-grid; place-items:center; width:44px; height:44px; border-radius:50%;
+  border:0; background:none; color:var(--ink-2); cursor:pointer;
+}
+.icon-btn:hover{background:var(--celeste-wash);color:var(--celeste-deep)}
+.stepper{display:flex;align-items:center;gap:2px}
+.month-label{
+  border:0;background:none;cursor:pointer;padding:8px 6px;border-radius:10px;
+  font:700 18px/1 var(--font-display); letter-spacing:-.01em; min-width:150px; text-align:center;
+}
+.stepper .icon-btn{width:40px;height:40px}
+.card-head .stepper{width:100%;justify-content:space-between}
+
+/* ---------- navegación ---------- */
+.rail{display:none}
+.tabbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  display:grid; grid-template-columns:repeat(5,1fr);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  background:var(--surface); border-top:1px solid var(--line);
+}
+.tab{
+  display:flex; flex-direction:column; align-items:center; gap:2px; padding:4px 0;
+  border:0; background:none; cursor:pointer; color:var(--ink-2); font-size:11px; font-weight:600;
+}
+.tab .pill{display:grid;place-items:center;width:52px;height:30px;border-radius:15px}
+.tab[aria-current="page"]{color:var(--celeste-deep)}
+.tab[aria-current="page"] .pill{background:var(--celeste-wash)}
+.fab{
+  position:fixed; right:16px; bottom:calc(84px + env(safe-area-inset-bottom)); z-index:25;
+  width:58px; height:58px; border-radius:50%; border:0; cursor:pointer;
+  background:var(--celeste); color:#0E1B2E; display:grid; place-items:center;
+  box-shadow:0 6px 18px rgba(14,27,46,.28);
+}
+.fab:active{transform:scale(.96)}
+
+@media (min-width:900px){
+  body{padding-bottom:0}
+  .app{display:grid;grid-template-columns:240px minmax(0,1fr)}
+  .rail{
+    display:flex; flex-direction:column; gap:4px; position:sticky; top:0; height:100dvh;
+    padding:28px 16px 20px; border-right:1px solid var(--line); background:var(--surface);
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:0 10px 18px;font:800 22px/1 var(--font-display);letter-spacing:-.02em}
+  .brand i{width:12px;height:12px;border-radius:50%;background:var(--sun);display:inline-block}
+  .nav-item{
+    display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:12px;
+    border:0; background:none; cursor:pointer; font-weight:600; font-size:15px; color:var(--ink-2); text-align:left;
+  }
+  .nav-item:hover{background:var(--paper)}
+  .nav-item[aria-current="page"]{background:var(--celeste-wash);color:var(--celeste-deep)}
+  .rail .btn.primary{margin-top:auto}
+  .tabbar,.fab{display:none}
+  .top-title{display:none}
+  .topbar{padding:16px 24px 8px}
+  .main{padding:8px 24px 40px}
+}
+
+/* ---------- componentes ---------- */
+.btn{
+  min-height:48px; padding:0 18px; border-radius:12px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink); font-weight:600; font-size:15px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn:hover{border-color:var(--celeste-deep)}
+.btn.primary{background:var(--celeste);border-color:var(--celeste);color:#0E1B2E}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.danger{color:var(--out)}
+.link{border:0;background:none;padding:0;color:var(--celeste-deep);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+h2{font:700 18px/1.2 var(--font-display);letter-spacing:-.01em}
+.section-gap{margin-top:22px}
+.stack{display:grid;gap:16px}
+.page-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:8px 0 14px}
+.page-head h1{font:800 30px/1.05 var(--font-display);letter-spacing:-.02em}
+.page-head strong{font:800 24px/1 var(--font-display);letter-spacing:-.02em}
+.hint{margin-top:12px;font-size:14px;color:var(--ink-2)}
+.in{color:var(--in)} .out{color:var(--out)}
+
+/* hero */
+.hero{
+  background-color:var(--hero); color:var(--on-hero); border-radius:24px; padding:24px 22px 22px;
+  background-image:linear-gradient(var(--hero-grid) 1px,transparent 1px),linear-gradient(90deg,var(--hero-grid) 1px,transparent 1px);
+  background-size:28px 28px; background-position:-1px -1px;
+}
+.hero-label{font-size:15px;font-weight:500;opacity:.8}
+.hero-total{font:800 clamp(36px,10.5vw,60px)/1.05 var(--font-display);letter-spacing:-.03em;margin:4px 0 18px}
+.split{display:flex;height:10px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.14)}
+.split span{display:block;height:100%}
+.split .a{background:var(--celeste)} .split .b{background:var(--sun);margin-left:3px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.legend .k{display:flex;align-items:center;gap:8px;font-size:14px;opacity:.85}
+.legend .v{font:700 20px/1.2 var(--font-display);margin-top:2px;letter-spacing:-.01em}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+
+/* resumen del mes */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat-l{display:block;font-size:13px;color:var(--ink-2);margin-bottom:2px}
+.stat strong{font:800 clamp(15px,4.3vw,22px)/1.15 var(--font-display);letter-spacing:-.02em;white-space:nowrap}
+
+/* categorías */
+.cats{display:grid;gap:14px;margin-top:4px}
+.cat-top{display:flex;justify-content:space-between;gap:10px;font-size:15px;margin-bottom:6px}
+.cat-top b{font-weight:600}
+.cat-top span{color:var(--ink-2)}
+.track{height:8px;border-radius:99px;background:var(--paper);overflow:hidden}
+.track i{display:block;height:100%;border-radius:99px}
+
+/* listas */
+.list{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.day{
+  display:flex;justify-content:space-between;gap:12px;padding:9px 16px;
+  background:var(--celeste-wash);color:var(--celeste-deep);font-size:13px;font-weight:700;
+}
+.row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:58px;
+  padding:10px 16px;background:none;border:0;text-align:left;cursor:pointer;
+}
+.row+.row,.day+.row{border-top:0}
+.row+.row{border-top:1px solid var(--line)}
+.row:hover{background:var(--paper)}
+.row:focus-visible{outline-offset:-3px}
+.row-main{display:grid;gap:1px;min-width:0}
+.row-title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-sub{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+.row-sub .tag{display:inline-flex;align-items:center;gap:6px}
+.row-sub.neg{color:var(--out);font-weight:600}
+.row-amt{font:700 17px/1 var(--font-display);letter-spacing:-.01em;white-space:nowrap}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 14px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;min-height:38px;padding:0 14px;border-radius:99px;border:1px solid var(--line);
+  background:var(--surface);cursor:pointer;font-size:14px;font-weight:600;color:var(--ink-2);
+}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.empty{
+  background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:32px 20px;text-align:center;
+  display:grid;gap:14px;justify-items:center;color:var(--ink-2)
+}
+.welcome{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:28px 22px;margin-top:12px}
+.welcome h1{font:800 28px/1.1 var(--font-display);letter-spacing:-.02em;margin-bottom:8px}
+.welcome p{color:var(--ink-2);margin-bottom:20px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .btn{flex:1 1 160px}
+.grid.two{display:grid;gap:20px}
+@media (min-width:960px){
+  .grid.two{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start}
+}
+
+/* diálogos */
+dialog{
+  border:0;padding:0;background:var(--surface);color:var(--ink);
+  width:100%;max-width:520px;max-height:94dvh;margin:auto auto 0;border-radius:24px 24px 0 0;
+}
+dialog::backdrop{background:rgba(8,16,28,.55)}
+dialog[open]{animation:sheet .2s ease-out}
+@keyframes sheet{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+@media (min-width:700px){ dialog{margin:auto;border-radius:24px} }
+.sheet{padding:20px 20px calc(20px + env(safe-area-inset-bottom));overflow:auto;max-height:94dvh}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sheet-head h2{font-size:22px}
+.seg{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:16px}
+.seg button{flex:1;min-height:40px;border:0;border-radius:9px;background:none;font-weight:600;font-size:14px;color:var(--ink-2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.field input,.field select{
+  min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);font-size:16px;width:100%;
+}
+.field input:focus,.field select:focus{border-color:var(--celeste-deep);outline:2px solid var(--celeste-deep);outline-offset:0}
+.amount{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:0 16px}
+.amount:focus-within{border-color:var(--celeste-deep);outline:2px solid var(--celeste-deep)}
+.amount span{font:700 26px/1 var(--font-display);color:var(--ink-2)}
+.amount input{border:0!important;outline:0!important;background:none!important;font:800 32px/1 var(--font-display);letter-spacing:-.02em;min-height:64px;padding:0;width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.err{color:var(--out);font-size:14px;font-weight:600;margin:-4px 0 12px}
+.small{font-size:13px;color:var(--ink-2)}
+.chip-edit{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip-edit span{display:inline-flex;align-items:center;gap:4px;padding:4px 4px 4px 12px;border-radius:99px;background:var(--paper);border:1px solid var(--line);font-size:14px;font-weight:600}
+.chip-edit button{width:28px;height:28px;border-radius:50%;border:0;background:none;cursor:pointer;color:var(--ink-2);font-size:18px;line-height:1}
+.chip-edit button:hover{background:var(--celeste-wash);color:var(--out)}
+.inline-form{display:flex;gap:8px}
+.inline-form input{flex:1;min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);font-size:16px}
+.settings-block+.settings-block{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.settings-block h3{font:700 16px/1.2 var(--font-display);margin-bottom:10px}
+.btn-col{display:grid;gap:8px}
+
+#toast{
+  position:fixed;inset:calc(14px + env(safe-area-inset-top)) auto auto 50%;margin:0;transform:translate(-50%,-10px);z-index:60;border:0;
+  max-width:min(92vw,420px);padding:12px 18px;border-radius:14px;background:var(--ink);color:var(--paper);
+  font-weight:600;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:center
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.gate{min-height:100dvh;display:grid;place-items:center;padding:20px}
+.gate .welcome{width:min(440px,100%);margin:0}
+.gate .field{margin-bottom:12px}
+.gate .actions{margin-top:4px}
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<div id="toast" popover="manual" role="status" aria-live="polite"></div>
+<dialog id="dlg" aria-labelledby="dlg-title"></dialog>
+<input type="file" id="file-xlsx" accept=".xlsx,.xlsm" hidden>
+<input type="file" id="file-json" accept=".json,application/json" hidden>
+
+<script src="firebase-config.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   Datos y utilidades
+   ===================================================================== */
+const KEY = 'mis-gastos:v1';
+const LAST_KEY = 'mis-gastos:last';
+const CLOUD = !!(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && window.FIREBASE_CONFIG.projectId);
+const COL = { expense: 'expenses', income: 'incomes', transfer: 'transfers' };
+const DEFAULT_CATS = ['Alimentos','Transporte','Servicios','Impuestos','Salud','Ocio','Hogar','Educación','Otros'];
+const PALETTE = ['#2A68A0','#D9822B','#2E9C78','#8E5EA2','#C23B27','#4BA3C7','#A89325','#5C6B7A','#D16A8B','#6B8E23'];
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS = ['dom','lun','mar','mié','jue','vie','sáb'];
+
+const $ = (s, r = document) => r.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const monthOf = iso => iso.slice(0, 7);
+const inMonth = (iso, m) => typeof iso === 'string' && iso.startsWith(m);
+const monthLabel = m => { const [y, mo] = m.split('-'); return `${MESES[+mo - 1]} ${y}`; };
+const shiftMonth = (m, delta) => {
+  let [y, mo] = m.split('-').map(Number); mo += delta;
+  while (mo > 12) { mo -= 12; y++; }
+  while (mo < 1) { mo += 12; y--; }
+  return `${y}-${pad(mo)}`;
+};
+const dayLabel = iso => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${DIAS[new Date(y, m - 1, d).getDay()]} ${d} ${MESES_C[m - 1]}`;
+};
+
+const nf = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const money = n => (n < 0 ? '−' : '') + '$\u00A0' + nf.format(Math.abs(n));
+const nf0 = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
+const money0 = n => (n < 0 ? '−' : '') + '$\u00A0' + nf0.format(Math.abs(n));   // para totales: sin centavos
+const sum = (arr, f = x => x.amount) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
+
+// Acepta "12500", "12.500", "12500,50", "12.500,50"
+function parseAmount(raw) {
+  let s = String(raw ?? '').trim().replace(/\s|\$/g, '');
+  if (!s) return NaN;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+
+/* =====================================================================
+   Estado
+   ===================================================================== */
+const emptyState = () => ({
+  v: 1, accounts: [], incomes: [], expenses: [], transfers: [],
+  categories: [...DEFAULT_CATS], last: { account: null, category: null }
+});
+function load() {
+  try {
+    if (CLOUD) {   // en la nube solo guardamos acá la última cuenta/categoría usada
+      const last = JSON.parse(localStorage.getItem(LAST_KEY) || 'null');
+      return Object.assign(emptyState(), last ? { last } : {});
+    }
+    const raw = localStorage.getItem(KEY);
+    return raw ? Object.assign(emptyState(), JSON.parse(raw)) : emptyState();
+  } catch (e) { return emptyState(); }
+}
+function persist() {
+  try {
+    if (CLOUD) localStorage.setItem(LAST_KEY, JSON.stringify(S.last));
+    else localStorage.setItem(KEY, JSON.stringify(S));
+  } catch (e) { toast('No pude guardar los datos en este navegador.'); }
+}
+let S = load();
+let ME = null;   // nombre corto de quien está usando la app (para saber quién cargó cada movimiento)
+const ui = { tab: 'panel', month: monthOf(todayISO()), catFilter: 'all' };
+
+const account = id => S.accounts.find(a => a.id === id);
+const accName = id => account(id)?.name ?? 'Cuenta eliminada';
+const catColor = name => { const i = S.categories.indexOf(name); return i < 0 ? '#8793A3' : PALETTE[i % PALETTE.length]; };
+const balanceOf = a =>
+  (+a.initial || 0)
+  + sum(S.incomes.filter(x => x.account === a.id))
+  - sum(S.expenses.filter(x => x.account === a.id))
+  + sum(S.transfers.filter(x => x.to === a.id))
+  - sum(S.transfers.filter(x => x.from === a.id));
+const listOf = kind => ({ expense: S.expenses, income: S.incomes, transfer: S.transfers }[kind]);
+
+/* =====================================================================
+   Capa de datos: modo local (pruebas) o nube compartida (Firebase)
+   ===================================================================== */
+const session = { status: CLOUD ? 'loading' : 'ready', user: null };
+const authDraft = { mode: 'in', email: '' };
+const synced = new Set();
+const SYNC_KEYS = ['accounts', 'incomes', 'expenses', 'transfers', 'categories'];
+const plain = ({ id, ...rest }) => JSON.parse(JSON.stringify(rest));   // sin undefined (Firestore no lo acepta)
+const shortName = email => { const n = (email || '').split('@')[0].split(/[._\-0-9]/)[0]; return n ? cap(n) : null; };
+
+const LocalDB = { put() { persist(); }, del() { persist(); }, setCategories() { persist(); }, replaceAll() { persist(); } };
+
+const Cloud = {
+  v: '10.12.2',
+  async init(onAuth) {
+    const base = `https://www.gstatic.com/firebasejs/${this.v}/`;
+    const [appM, authM, fsM] = await Promise.all([
+      import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')
+    ]);
+    this.m = { ...authM, ...fsM };
+    const app = appM.initializeApp(window.FIREBASE_CONFIG);
+    this.auth = authM.getAuth(app);
+    try {   // caché local: permite cargar gastos sin conexión y se sincronizan al volver internet
+      this.db = fsM.initializeFirestore(app, { localCache: fsM.persistentLocalCache({ tabManager: fsM.persistentMultipleTabManager() }) });
+    } catch (e) { this.db = fsM.getFirestore(app); }
+    authM.onAuthStateChanged(this.auth, onAuth);
+  },
+  subscribe(onData, onError) {
+    this.stop();
+    const { collection, onSnapshot, doc } = this.m, db = this.db;
+    this.unsubs = ['accounts', 'incomes', 'expenses', 'transfers'].map(col =>
+      onSnapshot(collection(db, col), snap => onData(col, snap.docs.map(d => ({ id: d.id, ...d.data() }))), onError));
+    this.unsubs.push(onSnapshot(doc(db, 'meta', 'config'), snap => onData('categories', snap.exists() ? snap.data().categories : null), onError));
+  },
+  stop() { (this.unsubs || []).forEach(u => u()); this.unsubs = []; },
+  fail(e) { console.error(e); toast('No se pudo sincronizar. Revisá tu conexión.'); },
+  put(col, rec) { const { setDoc, doc } = this.m; setDoc(doc(this.db, col, rec.id), plain(rec)).catch(e => this.fail(e)); },
+  del(col, id) { const { deleteDoc, doc } = this.m; deleteDoc(doc(this.db, col, id)).catch(e => this.fail(e)); },
+  setCategories(list) { const { setDoc, doc } = this.m; setDoc(doc(this.db, 'meta', 'config'), { categories: list }, { merge: true }).catch(e => this.fail(e)); },
+  async replaceAll(next, old) {
+    const { writeBatch, doc } = this.m, db = this.db, ops = [];
+    ['accounts', 'incomes', 'expenses', 'transfers'].forEach(col => {
+      old[col].forEach(x => ops.push(b => b.delete(doc(db, col, x.id))));
+      next[col].forEach(x => ops.push(b => b.set(doc(db, col, x.id), plain(x))));
+    });
+    ops.push(b => b.set(doc(db, 'meta', 'config'), { categories: next.categories }, { merge: true }));
+    try {
+      for (let i = 0; i < ops.length; i += 400) {
+        const b = writeBatch(db); ops.slice(i, i + 400).forEach(f => f(b)); await b.commit();
+      }
+    } catch (e) { this.fail(e); }
+  },
+  signIn: (email, pass) => Cloud.m.signInWithEmailAndPassword(Cloud.auth, email, pass),
+  async signUp(email, pass) {
+    const cred = await this.m.createUserWithEmailAndPassword(this.auth, email, pass);
+    await this.m.sendEmailVerification(cred.user).catch(() => {});
+  },
+  resend: () => Cloud.m.sendEmailVerification(Cloud.auth.currentUser),
+  async recheck() { const u = this.auth.currentUser; await u.reload(); await u.getIdToken(true); return u.emailVerified; },
+  reset: email => Cloud.m.sendPasswordResetEmail(Cloud.auth, email),
+  logout: () => Cloud.m.signOut(Cloud.auth)
+};
+let DB = CLOUD ? Cloud : LocalDB;
+
+// Cambios: se aplican en pantalla al instante y se mandan a la base de datos
+function upsert(col, rec) {
+  const arr = S[col], i = arr.findIndex(x => x.id === rec.id);
+  if (i >= 0) arr[i] = rec; else arr.push(rec);
+  DB.put(col, rec);
+}
+function removeDoc(col, id) { S[col] = S[col].filter(x => x.id !== id); DB.del(col, id); }
+function setCategories(list) { S.categories = list; persist(); DB.setCategories(list); }
+function replaceAll(next) {
+  const old = S;
+  S = { ...emptyState(), ...next, last: old.last };
+  persist(); DB.replaceAll(next, old);
+}
+
+// Datos que llegan de la nube (también los que carga la otra persona)
+let renderQueued = false;
+function onRemote(key, data) {
+  if (key === 'categories') { if (Array.isArray(data) && data.length) S.categories = data; }
+  else S[key] = data;
+  synced.add(key);
+  if (session.status === 'syncing' && SYNC_KEYS.every(k => synced.has(k))) session.status = 'ready';
+  if (!renderQueued) { renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); }
+}
+function onSyncError(e) {
+  if (e && e.code === 'permission-denied') { session.status = 'denied'; render(); }
+  else console.error(e);
+}
+function onAuthChange(user) {
+  session.user = user; ME = user ? shortName(user.email) : null;
+  synced.clear();
+  if (!user) { Cloud.stop(); S = { ...emptyState(), last: S.last }; session.status = 'signedout'; closeDialog(); render(); return; }
+  if (!user.emailVerified) { session.status = 'unverified'; render(); return; }
+  startSync();
+}
+function startSync() { session.status = 'syncing'; render(); Cloud.subscribe(onRemote, onSyncError); }
+async function boot() {
+  render();
+  if (CLOUD) { try { await Cloud.init(onAuthChange); } catch (e) { console.error(e); session.status = 'error'; render(); } }
+  navigator.storage?.persist?.();
+}
+
+const AUTH_ERR = {
+  'auth/invalid-credential': 'El email o la contraseña no son correctos.',
+  'auth/wrong-password': 'El email o la contraseña no son correctos.',
+  'auth/user-not-found': 'El email o la contraseña no son correctos.',
+  'auth/invalid-email': 'Ese email no es válido.',
+  'auth/email-already-in-use': 'Ese email ya tiene una cuenta. Probá entrar.',
+  'auth/weak-password': 'La contraseña tiene que tener al menos 6 caracteres.',
+  'auth/too-many-requests': 'Demasiados intentos. Esperá un rato y probá de nuevo.',
+  'auth/network-request-failed': 'No hay conexión. Revisá tu internet.'
+};
+
+/* =====================================================================
+   Íconos
+   ===================================================================== */
+const svg = (p, s = 22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const I = {
+  home: svg('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>'),
+  out: svg('<path d="M7 17L17 7"/><path d="M8 7h9v9"/>'),
+  in: svg('<path d="M17 7L7 17"/><path d="M16 17H7V8"/>'),
+  swap: svg('<path d="M4 8h14"/><path d="M14 4l4 4-4 4"/><path d="M20 16H6"/><path d="M10 12l-4 4 4 4"/>'),
+  bank: svg('<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/>'),
+  gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  plus: svg('<path d="M12 5v14M5 12h14"/>', 26),
+  plusS: svg('<path d="M12 5v14M5 12h14"/>', 20),
+  left: svg('<path d="M15 6l-6 6 6 6"/>'),
+  right: svg('<path d="M9 6l6 6-6 6"/>'),
+  x: svg('<path d="M6 6l12 12M18 6L6 18"/>')
+};
+const NAV = [
+  { id: 'panel',    label: 'Panel',          short: 'Panel',    icon: I.home },
+  { id: 'gastos',   label: 'Gastos',         short: 'Gastos',   icon: I.out },
+  { id: 'ingresos', label: 'Ingresos',       short: 'Ingresos', icon: I.in },
+  { id: 'transf',   label: 'Transferencias', short: 'Transf.',  icon: I.swap },
+  { id: 'cuentas',  label: 'Cuentas',        short: 'Cuentas',  icon: I.bank }
+];
+const MONTH_TABS = ['gastos', 'ingresos', 'transf'];
+
+/* =====================================================================
+   Vistas
+   ===================================================================== */
+const monthStepper = () => `
+  <div class="stepper">
+    <button class="icon-btn" data-action="month-prev" aria-label="Mes anterior">${I.left}</button>
+    <button class="month-label" data-action="month-now" title="Ir al mes actual">${cap(monthLabel(ui.month))}</button>
+    <button class="icon-btn" data-action="month-next" aria-label="Mes siguiente">${I.right}</button>
+  </div>`;
+
+function shell(inner) {
+  const tab = NAV.find(n => n.id === ui.tab);
+  const wide = ui.tab === 'panel' ? ' wide' : '';
+  return `
+  <aside class="rail">
+    <div class="brand"><i></i>Mis gastos</div>
+    ${NAV.map(n => `<button class="nav-item" data-action="tab" data-tab="${n.id}" ${n.id === ui.tab ? 'aria-current="page"' : ''}>${n.icon}${n.label}</button>`).join('')}
+    <button class="btn primary" data-action="add">${I.plusS} Agregar</button>
+  </aside>
+  <div class="content">
+    <header class="topbar">
+      ${MONTH_TABS.includes(ui.tab) ? monthStepper() : `<span class="top-title">${ui.tab === 'panel' ? 'Mis gastos' : tab.label}</span>`}
+      <button class="icon-btn" data-action="settings" aria-label="Ajustes y datos">${I.gear}</button>
+    </header>
+    <main class="main${wide}" id="main">${inner}</main>
+  </div>
+  <nav class="tabbar" aria-label="Secciones">
+    ${NAV.map(n => `<button class="tab" data-action="tab" data-tab="${n.id}" ${n.id === ui.tab ? 'aria-current="page"' : ''}><span class="pill">${n.icon}</span>${n.short}</button>`).join('')}
+  </nav>
+  <button class="fab" data-action="add" aria-label="Agregar movimiento">${I.plus}</button>`;
+}
+
+function welcome() {
+  return `
+  <section class="welcome">
+    <h1>Empecemos por tus cuentas</h1>
+    <p>Podés traer todo desde tu Excel de Control de saldos o armar las cuentas a mano.</p>
+    <div class="actions">
+      <button class="btn primary" data-action="import-xlsx">Importar mi Excel</button>
+      <button class="btn" data-action="acc-open">Crear una cuenta</button>
+    </div>
+  </section>`;
+}
+
+const accRow = x => `
+  <button class="row" data-action="acc-open" data-id="${x.a.id}">
+    <span class="row-main">
+      <span class="row-title">${esc(x.a.name)}</span>
+      ${x.b < 0 ? '<span class="row-sub neg">Revisar: el saldo quedó negativo</span>' : ''}
+    </span>
+    <span class="row-amt ${x.b < 0 ? 'out' : ''}">${money(x.b)}</span>
+  </button>`;
+
+function accountGroups(bals) {
+  const group = (reserva, label) => {
+    const xs = bals.filter(x => (x.a.type === 'Reserva') === reserva);
+    return xs.length ? `<h2 class="section-gap">${label}</h2><div class="list" style="margin-top:10px">${xs.map(accRow).join('')}</div>` : '';
+  };
+  return group(false, 'Disponible') + group(true, 'Reservas');
+}
+
+function viewPanel() {
+  if (!S.accounts.length) return `<h1 class="sr-only">Panel</h1>${welcome()}`;
+  const m = ui.month;
+  const bals = S.accounts.map(a => ({ a, b: balanceOf(a) }));
+  const disp = sum(bals.filter(x => x.a.type !== 'Reserva'), x => x.b);
+  const res = sum(bals.filter(x => x.a.type === 'Reserva'), x => x.b);
+  const pa = Math.max(disp, 0), pb = Math.max(res, 0), pt = pa + pb;
+  const pd = pt ? (pa / pt) * 100 : 50;
+
+  const mi = S.incomes.filter(x => inMonth(x.date, m));
+  const me = S.expenses.filter(x => inMonth(x.date, m));
+  const inc = sum(mi), exp = sum(me), bal = inc - exp;
+  const byCat = Object.entries(me.reduce((o, x) => { o[x.category] = (o[x.category] || 0) + (+x.amount); return o; }, {}))
+    .sort((a, b) => b[1] - a[1]);
+  const max = byCat.length ? byCat[0][1] : 0;
+
+  return `
+  <h1 class="sr-only">Panel</h1>
+  <div class="grid two">
+    <div class="stack">
+      <section class="hero" aria-label="Total de fondos">
+        <p class="hero-label">Tenés en total</p>
+        <div class="hero-total">${money0(disp + res)}</div>
+        <div class="split" aria-hidden="true"><span class="a" style="width:${pd}%"></span><span class="b" style="width:calc(${100 - pd}% - 3px)"></span></div>
+        <div class="legend">
+          <div><div class="k"><i class="dot" style="background:var(--celeste)"></i>Disponible</div><div class="v">${money0(disp)}</div></div>
+          <div><div class="k"><i class="dot" style="background:var(--sun)"></i>Reservas</div><div class="v">${money0(res)}</div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">${monthStepper()}</div>
+        <div class="stats">
+          <div class="stat"><span class="stat-l">Ingresos</span><strong class="in">${money0(inc)}</strong></div>
+          <div class="stat"><span class="stat-l">Gastos</span><strong class="out">${money0(exp)}</strong></div>
+          <div class="stat"><span class="stat-l">Balance</span><strong class="${bal < 0 ? 'out' : 'in'}">${money0(bal)}</strong></div>
+        </div>
+        ${inc === 0 ? `<p class="hint">Todavía no cargaste ingresos de ${monthLabel(m)}. <button class="link" data-action="add-kind" data-kind="income">Cargar un ingreso</button></p>` : ''}
+      </section>
+
+      <section class="card">
+        <h2 style="margin-bottom:14px">Gastos por categoría</h2>
+        ${byCat.length ? `<div class="cats">${byCat.map(([name, v]) => `
+          <div>
+            <div class="cat-top"><b>${esc(name)}</b><span>${money(v)} &nbsp;${exp ? Math.round(v / exp * 100) : 0}%</span></div>
+            <div class="track"><i style="width:${max ? v / max * 100 : 0}%;background:${catColor(name)}"></i></div>
+          </div>`).join('')}</div>`
+        : `<p class="hint" style="margin-top:0">Todavía no hay gastos en ${monthLabel(m)}. <button class="link" data-action="add-kind" data-kind="expense">Cargar un gasto</button></p>`}
+      </section>
+    </div>
+    <div>${accountGroups(bals).replace('section-gap', 'section-gap-none')}</div>
+  </div>`;
+}
+
+function dayGroups(items) {
+  const map = new Map();
+  [...items].reverse().sort((a, b) => b.date.localeCompare(a.date)).forEach(x => {
+    if (!map.has(x.date)) map.set(x.date, []);
+    map.get(x.date).push(x);
+  });
+  return [...map.entries()];
+}
+
+function viewExpenses() {
+  const m = ui.month;
+  let items = S.expenses.filter(x => inMonth(x.date, m));
+  const cats = [...new Set(items.map(x => x.category))];
+  if (ui.catFilter !== 'all' && !cats.includes(ui.catFilter)) ui.catFilter = 'all';
+  if (ui.catFilter !== 'all') items = items.filter(x => x.category === ui.catFilter);
+  const body = dayGroups(items).map(([d, xs]) => `
+    <div class="day"><span>${dayLabel(d)}</span><span>${money(-sum(xs))}</span></div>
+    ${xs.map(x => `
+      <button class="row" data-action="edit" data-kind="expense" data-id="${x.id}">
+        <span class="row-main">
+          <span class="row-title">${esc(x.desc || x.category)}</span>
+          <span class="row-sub"><span class="tag"><i class="dot" style="background:${catColor(x.category)}"></i>${esc(x.category)}</span><span>${esc(accName(x.account))}</span>${x.by ? `<span>${esc(x.by)}</span>` : ''}</span>
+        </span>
+        <span class="row-amt out">${money(-x.amount)}</span>
+      </button>`).join('')}`).join('');
+  return `
+  <div class="page-head"><h1>Gastos</h1><strong class="out">${money0(sum(items))}</strong></div>
+  ${cats.length > 1 ? `<div class="chips" role="group" aria-label="Filtrar por categoría">
+    <button class="chip" data-action="filter-cat" data-cat="all" aria-pressed="${ui.catFilter === 'all'}">Todas</button>
+    ${cats.map(c => `<button class="chip" data-action="filter-cat" data-cat="${esc(c)}" aria-pressed="${ui.catFilter === c}">${esc(c)}</button>`).join('')}
+  </div>` : ''}
+  ${items.length ? `<div class="list">${body}</div>` : `
+    <div class="empty"><p>No cargaste gastos en ${monthLabel(m)} todavía.</p>
+    <button class="btn primary" data-action="add-kind" data-kind="expense">${I.plusS} Agregar gasto</button></div>`}`;
+}
+
+function viewIncomes() {
+  const m = ui.month;
+  const items = S.incomes.filter(x => inMonth(x.date, m));
+  const body = dayGroups(items).map(([d, xs]) => `
+    <div class="day"><span>${dayLabel(d)}</span><span>${money(sum(xs))}</span></div>
+    ${xs.map(x => `
+      <button class="row" data-action="edit" data-kind="income" data-id="${x.id}">
+        <span class="row-main">
+          <span class="row-title">${esc(x.concept || 'Ingreso')}</span>
+          <span class="row-sub"><span>${esc(accName(x.account))}</span>${x.by ? `<span>${esc(x.by)}</span>` : ''}</span>
+        </span>
+        <span class="row-amt in">+${money(x.amount)}</span>
+      </button>`).join('')}`).join('');
+  return `
+  <div class="page-head"><h1>Ingresos</h1><strong class="in">${money0(sum(items))}</strong></div>
+  ${items.length ? `<div class="list">${body}</div>` : `
+    <div class="empty"><p>Todavía no cargaste ingresos de ${monthLabel(m)}.</p>
+    <button class="btn primary" data-action="add-kind" data-kind="income">${I.plusS} Agregar ingreso</button></div>`}`;
+}
+
+function viewTransfers() {
+  const m = ui.month;
+  const items = S.transfers.filter(x => inMonth(x.date, m));
+  const body = dayGroups(items).map(([d, xs]) => `
+    <div class="day"><span>${dayLabel(d)}</span><span></span></div>
+    ${xs.map(x => `
+      <button class="row" data-action="edit" data-kind="transfer" data-id="${x.id}">
+        <span class="row-main">
+          <span class="row-title">${esc(x.concept || 'Transferencia')}</span>
+          <span class="row-sub"><span>de ${esc(accName(x.from))} a ${esc(accName(x.to))}</span></span>
+        </span>
+        <span class="row-amt">${money(x.amount)}</span>
+      </button>`).join('')}`).join('');
+  return `
+  <div class="page-head"><h1>Transferencias</h1><strong>${money0(sum(items))}</strong></div>
+  ${items.length ? `<div class="list">${body}</div>` : `
+    <div class="empty"><p>No hubo transferencias entre tus cuentas en ${monthLabel(m)}.<br>Sirven para mover plata a reservas sin cambiar tu total.</p>
+    <button class="btn primary" data-action="add-kind" data-kind="transfer">${I.plusS} Agregar transferencia</button></div>`}`;
+}
+
+function viewAccounts() {
+  const bals = S.accounts.map(a => ({ a, b: balanceOf(a) }));
+  return `
+  <div class="page-head"><h1>Cuentas</h1><strong>${money0(sum(bals, x => x.b))}</strong></div>
+  ${S.accounts.length ? accountGroups(bals).replace('<h2 class="section-gap">', '<h2>') : `<div class="empty"><p>Todavía no tenés cuentas.</p></div>`}
+  <div class="actions section-gap"><button class="btn primary" data-action="acc-open">${I.plusS} Nueva cuenta</button></div>
+  <p class="hint">El saldo de cada cuenta se calcula solo: saldo inicial + ingresos − gastos ± transferencias.</p>`;
+}
+
+function renderGate() {
+  const up = authDraft.mode === 'up';
+  const box = (h, p, extra = '') => `<div class="gate"><section class="welcome"><h1>${h}</h1><p>${p}</p>${extra}</section></div>`;
+  const st = session.status;
+  if (st === 'loading' || st === 'syncing') return box('Mis gastos', 'Cargando tus datos…');
+  if (st === 'error') return box('No pude conectarme', 'No se pudo cargar el servicio de datos. Revisá tu conexión e intentá de nuevo.', '<div class="actions"><button class="btn primary" data-action="retry">Reintentar</button></div>');
+  if (st === 'unverified') return box('Confirmá tu email',
+    `Te mandamos un mail a <b>${esc(session.user?.email)}</b>. Abrí el link que trae (si no lo ves, mirá en spam) y después tocá el botón.`,
+    `<div class="actions"><button class="btn primary" data-action="verify-check">Ya lo confirmé</button><button class="btn" data-action="verify-resend">Reenviar mail</button></div>
+     <p class="hint"><button class="link" data-action="logout">Usar otro email</button></p>`);
+  if (st === 'denied') return box('Esta cuenta no tiene acceso',
+    `Entraste como <b>${esc(session.user?.email)}</b>, pero ese email no está autorizado en las reglas de la base de datos. Revisá el README (paso de reglas) o entrá con otro email.`,
+    '<div class="actions"><button class="btn" data-action="logout">Cerrar sesión</button></div>');
+  return box('Mis gastos', up ? 'Creá tu cuenta con el email que está autorizado.' : 'Entrá con tu email para ver y cargar los gastos compartidos.', `
+    <form id="auth-form" novalidate>
+      <div class="field"><label for="au-email">Email</label><input id="au-email" name="email" type="email" inputmode="email" autocomplete="email" value="${esc(authDraft.email)}"></div>
+      <div class="field"><label for="au-pass">Contraseña</label><input id="au-pass" name="password" type="password" autocomplete="${up ? 'new-password' : 'current-password'}"></div>
+      <p class="err" id="au-err" role="alert" hidden></p>
+      <div class="actions"><button class="btn primary" type="submit">${up ? 'Crear cuenta' : 'Entrar'}</button></div>
+    </form>
+    <p class="hint"><button class="link" data-action="auth-toggle">${up ? 'Ya tengo cuenta' : 'Crear cuenta'}</button> &nbsp;&nbsp; <button class="link" data-action="auth-reset">Olvidé mi contraseña</button></p>`);
+}
+
+function render() {
+  if (CLOUD && session.status !== 'ready') {
+    const f = document.activeElement?.id;
+    $('#app').innerHTML = renderGate();
+    if (f && $('#' + f)) $('#' + f).focus();
+    return;
+  }
+  const views = { panel: viewPanel, gastos: viewExpenses, ingresos: viewIncomes, transf: viewTransfers, cuentas: viewAccounts };
+  const y = window.scrollY;
+  $('#app').innerHTML = shell(views[ui.tab]());
+  window.scrollTo(0, y);
+}
+
+/* =====================================================================
+   Diálogos
+   ===================================================================== */
+const dlg = $('#dlg');
+function openDialog(html, focusSel) {
+  dlg.innerHTML = `<div class="sheet">${html}</div>`;
+  if (!dlg.open) dlg.showModal();
+  if (focusSel) setTimeout(() => dlg.querySelector(focusSel)?.focus(), 30);
+}
+const closeDialog = () => { if (dlg.open) dlg.close(); };
+dlg.addEventListener('click', e => { if (e.target === dlg) closeDialog(); });
+
+const KIND = { expense: 'gasto', income: 'ingreso', transfer: 'transferencia' };
+const defaultDate = () => monthOf(todayISO()) === ui.month ? todayISO() : `${ui.month}-01`;
+const accOpts = sel => S.accounts.map(a => `<option value="${a.id}" ${a.id === sel ? 'selected' : ''}>${esc(a.name)}${a.type === 'Reserva' ? ' (reserva)' : ''}</option>`).join('');
+const catOpts = sel => (S.categories.includes(sel) || !sel ? S.categories : [...S.categories, sel])
+  .map(c => `<option ${c === sel ? 'selected' : ''}>${esc(c)}</option>`).join('');
+
+function openEntry(kind, id, keep) {
+  if (!S.accounts.length) { toast('Primero creá una cuenta.'); openAccount(); return; }
+  const e = id ? listOf(kind).find(x => x.id === id) : null;
+  const firstAcc = (S.accounts.find(a => a.type !== 'Reserva') || S.accounts[0]).id;
+  const lastAcc = account(S.last.account) ? S.last.account : firstAcc;
+  const lastCat = S.categories.includes(S.last.category) ? S.last.category : S.categories[0];
+  const amountVal = e ? String(e.amount).replace('.', ',') : (keep?.amount || '');
+
+  const fields = {
+    expense: `
+      <div class="field"><label for="f-desc">Descripción</label><input id="f-desc" name="desc" autocomplete="off" placeholder="Ej: Supermercado" value="${esc(e?.desc)}"></div>
+      <div class="row2">
+        <div class="field"><label for="f-cat">Categoría</label><select id="f-cat" name="category">${catOpts(e?.category || lastCat)}</select></div>
+        <div class="field"><label for="f-acc">Cuenta de pago</label><select id="f-acc" name="account">${accOpts(e?.account || lastAcc)}</select></div>
+      </div>`,
+    income: `
+      <div class="field"><label for="f-concept">Concepto</label><input id="f-concept" name="concept" autocomplete="off" placeholder="Ej: Sueldo" value="${esc(e?.concept)}"></div>
+      <div class="field"><label for="f-acc">Cuenta donde se acreditó</label><select id="f-acc" name="account">${accOpts(e?.account || lastAcc)}</select></div>`,
+    transfer: `
+      <div class="field"><label for="f-concept">Concepto (opcional)</label><input id="f-concept" name="concept" autocomplete="off" placeholder="Ej: Paso a reserva" value="${esc(e?.concept)}"></div>
+      <div class="row2">
+        <div class="field"><label for="f-from">Desde</label><select id="f-from" name="from">${accOpts(e?.from || lastAcc)}</select></div>
+        <div class="field"><label for="f-to">Hacia</label><select id="f-to" name="to">${accOpts(e?.to || (S.accounts.find(a => a.id !== (e?.from || lastAcc)) || S.accounts[0]).id)}</select></div>
+      </div>`
+  }[kind];
+
+  openDialog(`
+    <div class="sheet-head"><h2 id="dlg-title">${e ? 'Editar' : 'Nuevo'} ${KIND[kind]}</h2>
+      <button class="icon-btn" data-action="close" aria-label="Cerrar">${I.x}</button></div>
+    ${e ? '' : `<div class="seg" role="group" aria-label="Tipo de movimiento">
+      ${['expense','income','transfer'].map(k => `<button type="button" data-action="entry-kind" data-kind="${k}" aria-pressed="${k === kind}">${cap(KIND[k])}</button>`).join('')}
+    </div>`}
+    <form id="entry-form" data-kind="${kind}" data-id="${e?.id || ''}" novalidate>
+      <div class="field"><label for="f-amount">Monto</label>
+        <div class="amount"><span>$</span><input id="f-amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="0" value="${amountVal}"></div></div>
+      ${fields}
+      <div class="field"><label for="f-date">Fecha</label><input id="f-date" name="date" type="date" value="${e?.date || keep?.date || defaultDate()}"></div>
+      <p class="err" id="f-err" role="alert" hidden></p>
+      <div class="actions">
+        ${e ? `<button type="button" class="btn danger" data-action="delete" data-kind="${kind}" data-id="${e.id}">Eliminar</button>`
+            : `<button type="button" class="btn" data-action="save-more">Guardar y seguir</button>`}
+        <button type="submit" class="btn primary">Guardar</button>
+      </div>
+    </form>`, '#f-amount');
+}
+
+function formError(form, field, msg) {
+  const el = $('#f-err', form); el.textContent = msg; el.hidden = false;
+  form.elements[field]?.focus();
+}
+
+function saveEntry(form, more) {
+  const kind = form.dataset.kind, id = form.dataset.id;
+  const v = n => form.elements[n]?.value;
+  const amount = parseAmount(v('amount'));
+  if (!(amount > 0)) return formError(form, 'amount', 'Ingresá un monto mayor a cero.');
+  const date = v('date');
+  if (!date) return formError(form, 'date', 'Elegí una fecha.');
+
+  let rec;
+  if (kind === 'expense') rec = { date, desc: v('desc').trim(), category: v('category'), account: v('account'), amount };
+  else if (kind === 'income') rec = { date, account: v('account'), concept: v('concept').trim(), amount };
+  else {
+    if (v('from') === v('to')) return formError(form, 'to', 'Elegí cuentas distintas para origen y destino.');
+    rec = { date, from: v('from'), to: v('to'), concept: v('concept').trim(), amount };
+  }
+
+  const col = COL[kind], old = id ? S[col].find(x => x.id === id) : null;
+  const full = { ...(old || {}), ...rec, id: id || uid() };
+  if (!old?.by && ME) full.by = ME;
+  upsert(col, full);
+  if (kind === 'expense') { S.last.account = rec.account; S.last.category = rec.category; }
+  if (kind === 'income') S.last.account = rec.account;
+  persist();
+
+  const where = monthOf(date) !== ui.month ? ` en ${monthLabel(monthOf(date))}` : '';
+  const label = `${cap(KIND[kind])} ${id ? 'actualizado' : 'guardado'}${where}`;
+  render();
+  if (more && !id) {
+    toast(label);
+    form.elements.amount.value = '';
+    if (form.elements.desc) form.elements.desc.value = '';
+    if (form.elements.concept) form.elements.concept.value = '';
+    $('#f-err', form).hidden = true;
+    form.elements.amount.focus();
+  } else { closeDialog(); toast(label); }
+}
+
+function openAccount(id) {
+  const a = id ? account(id) : null;
+  openDialog(`
+    <div class="sheet-head"><h2 id="dlg-title">${a ? 'Editar cuenta' : 'Nueva cuenta'}</h2>
+      <button class="icon-btn" data-action="close" aria-label="Cerrar">${I.x}</button></div>
+    <form id="account-form" data-id="${a?.id || ''}" novalidate>
+      <div class="field"><label for="a-name">Nombre</label><input id="a-name" name="name" autocomplete="off" placeholder="Ej: Banco Galicia" value="${esc(a?.name)}"></div>
+      <div class="field"><label for="a-type">Tipo de fondo</label>
+        <select id="a-type" name="type"><option ${a?.type !== 'Reserva' ? 'selected' : ''}>Disponible</option><option ${a?.type === 'Reserva' ? 'selected' : ''}>Reserva</option></select>
+        <span class="small">Las reservas son plata apartada: se suman al total pero no a lo disponible.</span></div>
+      <div class="field"><label for="a-init">Saldo inicial</label>
+        <input id="a-init" name="initial" inputmode="decimal" autocomplete="off" placeholder="0" value="${a ? String(a.initial).replace('.', ',') : ''}">
+        <span class="small">Se carga una sola vez. Después el saldo se actualiza con tus movimientos.</span></div>
+      <p class="err" id="f-err" role="alert" hidden></p>
+      <div class="actions">
+        ${a ? `<button type="button" class="btn danger" data-action="acc-delete" data-id="${a.id}">Eliminar</button>` : ''}
+        <button type="submit" class="btn primary">Guardar</button>
+      </div>
+    </form>`, '#a-name');
+}
+
+function saveAccount(form) {
+  const name = form.elements.name.value.trim();
+  if (!name) return formError(form, 'name', 'Ponele un nombre a la cuenta.');
+  const id = form.dataset.id;
+  if (S.accounts.some(a => a.id !== id && a.name.toLowerCase() === name.toLowerCase())) return formError(form, 'name', 'Ya tenés una cuenta con ese nombre.');
+  const raw = form.elements.initial.value.trim();
+  const initial = raw === '' ? 0 : parseAmount(raw);
+  if (Number.isNaN(initial)) return formError(form, 'initial', 'El saldo inicial no es un número válido.');
+  const rec = { name, type: form.elements.type.value, initial };
+  upsert('accounts', { ...(id ? account(id) : {}), ...rec, id: id || uid() });
+  closeDialog(); render(); toast('Cuenta guardada');
+}
+
+function deleteAccount(id) {
+  const used = [S.incomes, S.expenses].some(l => l.some(x => x.account === id)) || S.transfers.some(x => x.from === id || x.to === id);
+  if (used) { toast('Esa cuenta tiene movimientos. Para borrarla, primero eliminá o cambiá esos movimientos.'); return; }
+  if (!confirm('¿Eliminar esta cuenta?')) return;
+  removeDoc('accounts', id);
+  closeDialog(); render(); toast('Cuenta eliminada');
+}
+
+function openSettings() {
+  openDialog(`
+    <div class="sheet-head"><h2 id="dlg-title">Ajustes y datos</h2>
+      <button class="icon-btn" data-action="close" aria-label="Cerrar">${I.x}</button></div>
+
+    <div class="settings-block">
+      <h3>Categorías de gasto</h3>
+      <div class="chip-edit">${S.categories.map(c => `<span><i class="dot" style="background:${catColor(c)}"></i>${esc(c)}<button type="button" data-action="cat-remove" data-cat="${esc(c)}" aria-label="Quitar ${esc(c)}">×</button></span>`).join('')}</div>
+      <form id="cat-form" class="inline-form"><input name="cat" placeholder="Nueva categoría" autocomplete="off" aria-label="Nueva categoría"><button class="btn" type="submit">Agregar</button></form>
+    </div>
+
+    <div class="settings-block">
+      <h3>Tus datos</h3>
+      ${CLOUD
+        ? `<p class="small" style="margin-bottom:6px">Sesión iniciada como <b>${esc(session.user?.email)}</b>. Los datos están en la nube y los ven (y editan) todos los que tengan acceso.</p>
+           <button class="btn" style="margin-bottom:12px" data-action="logout">Cerrar sesión</button>`
+        : `<p class="small" style="margin-bottom:10px"><b>Modo local de prueba:</b> los datos se guardan solo en este dispositivo y navegador. Para compartirlos online, configurá Firebase (README.md).</p>`}
+      <div class="btn-col">
+        <button class="btn" data-action="import-xlsx">Importar desde Excel (Control de saldos)</button>
+        <button class="btn" data-action="export-xlsx">Exportar a Excel</button>
+        <button class="btn" data-action="export-json">Guardar copia de seguridad</button>
+        <button class="btn" data-action="import-json">Restaurar copia de seguridad</button>
+        <button class="btn danger" data-action="wipe">Borrar todo${CLOUD ? ' (para todos)' : ''}</button>
+      </div>
+    </div>`);
+}
+
+/* =====================================================================
+   Excel / copias
+   ===================================================================== */
+function loadXLSX() {
+  return new Promise((res, rej) => {
+    if (window.XLSX) return res();
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = res; s.onerror = () => rej(new Error('sin conexión'));
+    document.head.appendChild(s);
+  });
+}
+const hasData = () => S.accounts.length || S.incomes.length || S.expenses.length || S.transfers.length;
+
+function toISODate(v) {
+  if (typeof v === 'number') return new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 86400000).toISOString().slice(0, 10);
+  if (v instanceof Date) return `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}`;
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+  return null;
+}
+const num = v => { const n = typeof v === 'number' ? v : parseAmount(v); return Number.isFinite(n) ? n : 0; };
+
+async function importXlsx(file) {
+  try { await loadXLSX(); } catch (e) { toast('Necesito conexión a internet para leer el Excel.'); return; }
+  let wb;
+  try { wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }); }
+  catch (e) { toast('No pude abrir ese archivo.'); return; }
+  const rowsOf = n => wb.Sheets[n] ? XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null }) : [];
+  const body = (rows, h) => { const i = rows.findIndex(r => r && r[0] === h); return i < 0 ? [] : rows.slice(i + 1); };
+
+  const accRows = body(rowsOf('Cuentas'), 'Cuenta').filter(r => r[0]);
+  if (!accRows.length) { toast('No encontré la hoja "Cuentas". ¿Es el Excel de Control de saldos?'); return; }
+
+  const next = emptyState(), byName = {};
+  accRows.forEach(r => {
+    const a = { id: uid(), name: String(r[0]).trim(), type: /reserva/i.test(r[1] || '') ? 'Reserva' : 'Disponible', initial: num(r[2]) };
+    next.accounts.push(a); byName[a.name] = a.id;
+  });
+  let skipped = 0;
+  body(rowsOf('Ingresos'), 'Fecha').forEach(r => {
+    const date = toISODate(r[0]), acc = byName[r[1]], amount = num(r[3]);
+    if (!date && !r[1] && !amount) return;
+    if (!date || !acc || !amount) { skipped++; return; }
+    next.incomes.push({ id: uid(), date, account: acc, concept: r[2] || '', amount });
+  });
+  body(rowsOf('Consumos'), 'Fecha').forEach(r => {
+    const date = toISODate(r[0]), acc = byName[r[3]], amount = num(r[4]);
+    if (!date && !r[3] && !amount) return;
+    if (!date || !acc || !amount) { skipped++; return; }
+    next.expenses.push({ id: uid(), date, desc: r[1] || '', category: r[2] || 'Otros', account: acc, amount });
+  });
+  body(rowsOf('Transferencias'), 'Fecha').forEach(r => {
+    const date = toISODate(r[0]), from = byName[r[1]], to = byName[r[2]], amount = num(r[4]);
+    if (!date && !r[1] && !amount) return;
+    if (!date || !from || !to || !amount) { skipped++; return; }
+    next.transfers.push({ id: uid(), date, from, to, concept: r[3] || '', amount });
+  });
+  const cats = body(rowsOf('Listas'), 'Categorías').map(r => r[0]).filter(Boolean).map(String);
+  if (cats.length) next.categories = cats;
+  next.expenses.forEach(x => { if (!next.categories.includes(x.category)) next.categories.push(x.category); });
+
+  const resumen = `${next.accounts.length} cuentas, ${next.expenses.length} gastos, ${next.incomes.length} ingresos y ${next.transfers.length} transferencias`;
+  if (hasData() && !confirm(`Vas a reemplazar lo que tenés cargado en la app por esto del Excel: ${resumen}${CLOUD ? ' (y lo ve también tu pareja)' : ''}. ¿Seguir?`)) return;
+  replaceAll(next); closeDialog(); render();
+  toast(`Importé ${resumen}${skipped ? ` (salteé ${skipped} filas incompletas)` : ''}`);
+}
+
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const stamp = () => todayISO();
+
+async function exportXlsx() {
+  try { await loadXLSX(); } catch (e) { toast('Necesito conexión a internet para armar el Excel.'); return; }
+  const d = iso => new Date(iso + 'T12:00:00');
+  const wb = XLSX.utils.book_new();
+  const add = (name, rows) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows, { cellDates: true }), name);
+  add('Cuentas', [['Cuenta', 'Tipo de fondo', 'Saldo inicial', 'Saldo actual'], ...S.accounts.map(a => [a.name, a.type, a.initial, balanceOf(a)])]);
+  add('Ingresos', [['Fecha', 'Cuenta', 'Concepto', 'Monto'], ...S.incomes.map(x => [d(x.date), accName(x.account), x.concept, x.amount])]);
+  add('Consumos', [['Fecha', 'Descripción', 'Categoría', 'Cuenta de pago', 'Monto'], ...S.expenses.map(x => [d(x.date), x.desc, x.category, accName(x.account), x.amount])]);
+  add('Transferencias', [['Fecha', 'Cuenta origen', 'Cuenta destino', 'Concepto', 'Monto'], ...S.transfers.map(x => [d(x.date), accName(x.from), accName(x.to), x.concept, x.amount])]);
+  add('Listas', [['Categorías'], ...S.categories.map(c => [c])]);
+  XLSX.writeFile(wb, `mis-gastos-${stamp()}.xlsx`, { cellDates: true });
+}
+const exportJson = () => { download(`mis-gastos-copia-${stamp()}.json`, new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); toast('Copia guardada'); };
+
+async function importJson(file) {
+  try {
+    const d = JSON.parse(await file.text());
+    if (!Array.isArray(d.accounts) || !Array.isArray(d.expenses)) throw new Error('formato');
+    if (hasData() && !confirm('Vas a reemplazar lo que tenés cargado por esta copia. ¿Seguir?')) return;
+    replaceAll(Object.assign(emptyState(), d)); closeDialog(); render(); toast('Copia restaurada');
+  } catch (e) { toast('Ese archivo no parece una copia de Mis gastos.'); }
+}
+
+/* =====================================================================
+   Eventos
+   ===================================================================== */
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg;
+  try { t.hidePopover(); t.showPopover(); } catch (e) {}
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => { try { t.hidePopover(); } catch (e) {} }, 250);
+  }, 3200);
+}
+const tabKind = () => ({ gastos: 'expense', ingresos: 'income', transf: 'transfer' }[ui.tab] || 'expense');
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]'); if (!el) return;
+  const d = el.dataset;
+  switch (d.action) {
+    case 'tab': ui.tab = d.tab; render(); window.scrollTo(0, 0); break;
+    case 'month-prev': ui.month = shiftMonth(ui.month, -1); render(); break;
+    case 'month-next': ui.month = shiftMonth(ui.month, 1); render(); break;
+    case 'month-now': ui.month = monthOf(todayISO()); render(); break;
+    case 'filter-cat': ui.catFilter = d.cat; render(); break;
+    case 'add': openEntry(tabKind()); break;
+    case 'add-kind': openEntry(d.kind); break;
+    case 'entry-kind': {
+      const f = $('#entry-form');
+      openEntry(d.kind, null, f ? { amount: f.elements.amount.value, date: f.elements.date.value } : null);
+      break;
+    }
+    case 'edit': openEntry(d.kind, d.id); break;
+    case 'save-more': saveEntry($('#entry-form'), true); break;
+    case 'delete':
+      if (confirm(`¿Eliminar este ${KIND[d.kind]}?`)) {
+        removeDoc(COL[d.kind], d.id);
+        closeDialog(); render(); toast(`${cap(KIND[d.kind])} eliminado`);
+      }
+      break;
+    case 'acc-open': openAccount(d.id); break;
+    case 'acc-delete': deleteAccount(d.id); break;
+    case 'settings': openSettings(); break;
+    case 'close': closeDialog(); break;
+    case 'cat-remove':
+      if (S.categories.length <= 1) { toast('Tiene que quedar al menos una categoría.'); break; }
+      setCategories(S.categories.filter(c => c !== d.cat)); openSettings(); render(); break;
+    case 'import-xlsx': $('#file-xlsx').click(); break;
+    case 'import-json': $('#file-json').click(); break;
+    case 'export-xlsx': exportXlsx(); break;
+    case 'export-json': exportJson(); break;
+    case 'auth-toggle': authDraft.email = $('#au-email')?.value.trim() || authDraft.email; authDraft.mode = authDraft.mode === 'up' ? 'in' : 'up'; render(); break;
+    case 'auth-reset': {
+      const email = ($('#au-email')?.value || '').trim();
+      if (!email) { toast('Escribí tu email arriba y volvé a tocar "Olvidé mi contraseña".'); break; }
+      Cloud.reset(email).then(() => toast('Te mandamos un mail para cambiar la contraseña.')).catch(er => toast(AUTH_ERR[er.code] || 'No pude mandar el mail.'));
+      break;
+    }
+    case 'verify-check':
+      Cloud.recheck().then(ok => ok ? startSync() : toast('Todavía no figura confirmado. Abrí el link del mail y probá de nuevo.')).catch(() => toast('No pude verificar. Probá de nuevo.'));
+      break;
+    case 'verify-resend': Cloud.resend().then(() => toast('Mail reenviado.')).catch(er => toast(AUTH_ERR[er.code] || 'Esperá un momento antes de reenviar.')); break;
+    case 'logout': Cloud.logout(); break;
+    case 'retry': location.reload(); break;
+    case 'wipe':
+      if (confirm((CLOUD ? '¿Borrar TODOS los datos? Se borran también para tu pareja y no se puede deshacer. Si dudás, primero guardá una copia de seguridad.' : '¿Borrar todos los datos de esta app? No se puede deshacer. Si dudás, primero guardá una copia de seguridad.'))) {
+        replaceAll(emptyState()); closeDialog(); render(); toast('Datos borrados');
+      }
+      break;
+  }
+});
+
+dlg.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.id === 'entry-form') saveEntry(f, false);
+  else if (f.id === 'account-form') saveAccount(f);
+  else if (f.id === 'cat-form') {
+    const name = f.elements.cat.value.trim();
+    if (!name) return;
+    if (S.categories.some(c => c.toLowerCase() === name.toLowerCase())) { toast('Esa categoría ya existe.'); return; }
+    setCategories([...S.categories, name]); openSettings(); render();
+    setTimeout(() => dlg.querySelector('#cat-form input')?.focus(), 30);
+  }
+});
+
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'auth-form') return;
+  e.preventDefault();
+  const f = e.target, email = f.elements.email.value.trim(), pass = f.elements.password.value;
+  const err = $('#au-err'), show = m => { err.textContent = m; err.hidden = false; };
+  authDraft.email = email;
+  if (!email || !pass) return show('Completá el email y la contraseña.');
+  const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+  try { await (authDraft.mode === 'up' ? Cloud.signUp(email, pass) : Cloud.signIn(email, pass)); }
+  catch (er) { btn.disabled = false; show(AUTH_ERR[er.code] || 'No pude entrar. Probá de nuevo.'); }
+});
+
+$('#file-xlsx').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importXlsx(f); });
+$('#file-json').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importJson(f); });
+
+/* =====================================================================
+   Arranque
+   ===================================================================== */
+boot();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+})();
+</script>
+</body>
+</html>
