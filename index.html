@@ -361,7 +361,10 @@ const listOf = kind => ({ expense: S.expenses, income: S.incomes, transfer: S.tr
 /* =====================================================================
    Capa de datos: modo local (pruebas) o nube compartida (Firebase)
    ===================================================================== */
-const session = { status: CLOUD ? 'loading' : 'ready', user: null };
+const LOCAL_FLAG = 'mis-gastos:modo-local';
+const localOk = () => { try { return localStorage.getItem(LOCAL_FLAG) === '1'; } catch (e) { return false; } };
+// Sin Firebase configurado no arrancamos "como si nada": mostramos un aviso (se puede elegir el modo local a propósito)
+const session = { status: CLOUD ? 'loading' : (localOk() ? 'ready' : 'setup'), user: null };
 const authDraft = { mode: 'in', email: '' };
 const synced = new Set();
 const SYNC_KEYS = ['accounts', 'incomes', 'expenses', 'transfers', 'categories'];
@@ -704,6 +707,9 @@ function renderGate() {
   const up = authDraft.mode === 'up';
   const box = (h, p, extra = '') => `<div class="gate"><section class="welcome"><h1>${h}</h1><p>${p}</p>${extra}</section></div>`;
   const st = session.status;
+  if (st === 'setup') return box('Falta conectar la base de datos',
+    'Esta página todavía no tiene Firebase configurado, por eso no te pide el email y no puede compartir datos. Completá <b>firebase-config.js</b> con los datos de tu proyecto (README, sección 1), subí el cambio a GitHub y recargá.',
+    '<div class="actions"><button class="btn" data-action="use-local">Usar en modo local (solo en este dispositivo)</button></div>');
   if (st === 'loading' || st === 'syncing') return box('Mis gastos', 'Cargando tus datos…');
   if (st === 'error') return box('No pude conectarme', 'No se pudo cargar el servicio de datos. Revisá tu conexión e intentá de nuevo.', '<div class="actions"><button class="btn primary" data-action="retry">Reintentar</button></div>');
   if (st === 'unverified') return box('Confirmá tu email',
@@ -724,7 +730,7 @@ function renderGate() {
 }
 
 function render() {
-  if (CLOUD && session.status !== 'ready') {
+  if (session.status !== 'ready') {
     const f = document.activeElement?.id;
     $('#app').innerHTML = renderGate();
     if (f && $('#' + f)) $('#' + f).focus();
@@ -1073,6 +1079,9 @@ document.addEventListener('click', e => {
     case 'verify-resend': Cloud.resend().then(() => toast('Mail reenviado.')).catch(er => toast(AUTH_ERR[er.code] || 'Esperá un momento antes de reenviar.')); break;
     case 'logout': Cloud.logout(); break;
     case 'retry': location.reload(); break;
+    case 'use-local':
+      try { localStorage.setItem(LOCAL_FLAG, '1'); } catch (e) {}
+      session.status = 'ready'; render(); break;
     case 'wipe':
       if (confirm((CLOUD ? '¿Borrar TODOS los datos? Se borran también para tu pareja y no se puede deshacer. Si dudás, primero guardá una copia de seguridad.' : '¿Borrar todos los datos de esta app? No se puede deshacer. Si dudás, primero guardá una copia de seguridad.'))) {
         replaceAll(emptyState()); closeDialog(); render(); toast('Datos borrados');

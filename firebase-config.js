@@ -1,17 +1,19 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAK90d0pyAyqnhgLS6gk3ERI_QursBBXHQ",
-  authDomain: "mis-gastos-40ed3.firebaseapp.com",
-  projectId: "mis-gastos-40ed3",
-  storageBucket: "mis-gastos-40ed3.firebasestorage.app",
-  messagingSenderId: "1053024209514",
-  appId: "1:1053024209514:web:a663163f5105a740e45813"
+// ─────────────────────────────────────────────────────────────
+//  Configuración de Firebase (la base de datos online compartida)
+//
+//  Mientras estos valores estén vacíos, la app funciona en "modo local":
+//  los datos quedan solo en ese dispositivo. Para que vos y tu pareja
+//  compartan todo, pegá acá los datos de tu proyecto de Firebase
+//  (los pasos están en README.md, sección "Datos online").
+//
+//  Tranquilo: estos valores NO son secretos. Lo que protege tus datos
+//  son las reglas de Firestore, que dejan entrar solo a sus dos emails.
+// ─────────────────────────────────────────────────────────────
+window.FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  storageBucket: '',
+  messagingSenderId: '',
+  appId: ''
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);

@@ -58,6 +58,11 @@ Si `firebase-config.js` está vacío, corre en *modo local de prueba* (datos sol
 
 ---
 
+## Si la página no te pide el email
+- Ves el aviso **"Falta conectar la base de datos"**: `firebase-config.js` está vacío en lo que está publicado. Completalo, hacé `git add .`, `git commit` y `git push`, esperá 1–2 minutos y recargá.
+- Seguís viendo la versión vieja en el celular: cerrá la app y abrila de nuevo (o borrá los datos del sitio).
+- Si ya habías usado el modo local, ese aviso no vuelve a salir: en ⚙ → *Guardar copia* antes de conectar, y después *Restaurar copia* ya conectado.
+
 ## Cosas útiles
 - **Sin conexión:** podés cargar gastos igual; se suben solos cuando vuelve internet.
 - **Quién cargó qué:** cada gasto e ingreso muestra el nombre (sale de la primera parte del email).
