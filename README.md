@@ -63,6 +63,15 @@ Si `firebase-config.js` está vacío, corre en *modo local de prueba* (datos sol
 - Seguís viendo la versión vieja en el celular: cerrá la app y abrila de nuevo (o borrá los datos del sitio).
 - Si ya habías usado el modo local, ese aviso no vuelve a salir: en ⚙ → *Guardar copia* antes de conectar, y después *Restaurar copia* ya conectado.
 
+## Deudas
+En la pestaña **Deudas** anotás lo que pediste prestado o le debés a alguien: monto, a quién y por qué.
+- Si te prestaron plata y la recibiste en una de tus cuentas, elegila al crear la deuda: ese saldo sube.
+- Con **Registrar pago** elegís desde qué cuenta sale la plata: baja el saldo de esa cuenta y la deuda va quedando en menos (no se puede pagar más de lo que falta).
+- Al llegar a cero la deuda pasa a "Saldadas". Los pagos del mes se descuentan del *Balance* del panel.
+- Arriba hay dos pestañas: **Debo** (lo que vos debés) y **Me deben** (plata que prestaste). En "Me deben" el cobro *suma* a la cuenta que elijas y el préstamo inicial *resta* de la cuenta de donde salió.
+- Todo pago o cobro se aplica a una cuenta. Si es en efectivo, elegí tu cuenta de efectivo (por ejemplo *Efectivo Guille*): ese saldo baja o sube.
+- No hace falta tocar las reglas de Firebase: funciona con las que ya pusiste.
+
 ## Cosas útiles
 - **Sin conexión:** podés cargar gastos igual; se suben solos cuando vuelve internet.
 - **Quién cargó qué:** cada gasto e ingreso muestra el nombre (sale de la primera parte del email).

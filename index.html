@@ -74,7 +74,7 @@ h1,h2,h3,p{margin:0}
 .rail{display:none}
 .tabbar{
   position:fixed; left:0; right:0; bottom:0; z-index:30;
-  display:grid; grid-template-columns:repeat(5,1fr);
+  display:grid; grid-template-columns:repeat(6,1fr);
   padding:6px 4px calc(6px + env(safe-area-inset-bottom));
   background:var(--surface); border-top:1px solid var(--line);
 }
@@ -82,7 +82,7 @@ h1,h2,h3,p{margin:0}
   display:flex; flex-direction:column; align-items:center; gap:2px; padding:4px 0;
   border:0; background:none; cursor:pointer; color:var(--ink-2); font-size:11px; font-weight:600;
 }
-.tab .pill{display:grid;place-items:center;width:52px;height:30px;border-radius:15px}
+.tab .pill{display:grid;place-items:center;width:46px;height:30px;border-radius:15px}
 .tab[aria-current="page"]{color:var(--celeste-deep)}
 .tab[aria-current="page"] .pill{background:var(--celeste-wash)}
 .fab{
@@ -180,7 +180,7 @@ h2{font:700 18px/1.2 var(--font-display);letter-spacing:-.01em}
 .row+.row{border-top:1px solid var(--line)}
 .row:hover{background:var(--paper)}
 .row:focus-visible{outline-offset:-3px}
-.row-main{display:grid;gap:1px;min-width:0}
+.row-main{display:grid;gap:1px;min-width:0;flex:1 1 auto}
 .row-title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row-sub{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
 .row-sub .tag{display:inline-flex;align-items:center;gap:6px}
@@ -197,6 +197,16 @@ h2{font:700 18px/1.2 var(--font-display);letter-spacing:-.01em}
   background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:32px 20px;text-align:center;
   display:grid;gap:14px;justify-items:center;color:var(--ink-2)
 }
+.debt-bar{margin-top:7px}
+.dc-cols{display:flex;gap:26px;flex-wrap:wrap}
+.seg button{font-size:14px;padding:0 6px}
+.debt-card{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.debt-card:hover{border-color:var(--celeste-deep)}
+.debt-card strong{font:800 22px/1.15 var(--font-display);letter-spacing:-.02em}
+.debt-sum{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+.debt-sum strong{font:800 34px/1 var(--font-display);letter-spacing:-.03em}
+.sub-h{font:700 16px/1.2 var(--font-display);margin:20px 0 10px}
+.link-fill{margin-top:2px;align-self:start}
 .welcome{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:28px 22px;margin-top:12px}
 .welcome h1{font:800 28px/1.1 var(--font-display);letter-spacing:-.02em;margin-bottom:8px}
 .welcome p{color:var(--ink-2);margin-bottom:20px}
@@ -276,7 +286,8 @@ dialog[open]{animation:sheet .2s ease-out}
 const KEY = 'mis-gastos:v1';
 const LAST_KEY = 'mis-gastos:last';
 const CLOUD = !!(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && window.FIREBASE_CONFIG.projectId);
-const COL = { expense: 'expenses', income: 'incomes', transfer: 'transfers' };
+const COL = { expense: 'expenses', income: 'incomes', transfer: 'transfers', debt: 'debts', payment: 'debtPayments' };
+const DATA_COLS = ['accounts', 'incomes', 'expenses', 'transfers', 'debts', 'debtPayments'];
 const DEFAULT_CATS = ['Alimentos','Transporte','Servicios','Impuestos','Salud','Ocio','Hogar','Educación','Otros'];
 const PALETTE = ['#2A68A0','#D9822B','#2E9C78','#8E5EA2','#C23B27','#4BA3C7','#A89325','#5C6B7A','#D16A8B','#6B8E23'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -324,7 +335,7 @@ function parseAmount(raw) {
    Estado
    ===================================================================== */
 const emptyState = () => ({
-  v: 1, accounts: [], incomes: [], expenses: [], transfers: [],
+  v: 1, accounts: [], incomes: [], expenses: [], transfers: [], debts: [], debtPayments: [],
   categories: [...DEFAULT_CATS], last: { account: null, category: null }
 });
 function load() {
@@ -345,7 +356,7 @@ function persist() {
 }
 let S = load();
 let ME = null;   // nombre corto de quien está usando la app (para saber quién cargó cada movimiento)
-const ui = { tab: 'panel', month: monthOf(todayISO()), catFilter: 'all' };
+const ui = { tab: 'panel', month: monthOf(todayISO()), catFilter: 'all', debtTab: 'debo' };
 
 const account = id => S.accounts.find(a => a.id === id);
 const accName = id => account(id)?.name ?? 'Cuenta eliminada';
@@ -355,7 +366,14 @@ const balanceOf = a =>
   + sum(S.incomes.filter(x => x.account === a.id))
   - sum(S.expenses.filter(x => x.account === a.id))
   + sum(S.transfers.filter(x => x.to === a.id))
-  - sum(S.transfers.filter(x => x.from === a.id));
+  - sum(S.transfers.filter(x => x.from === a.id))
+  + sum(S.debts.filter(d => d.account === a.id), d => kindOf(d) === 'debo' ? d.amount : -d.amount)       // préstamo recibido (+) o prestado (−)
+  + sum(S.debtPayments.filter(p => p.account === a.id), p => kindOf(debt(p.debt)) === 'debo' ? -p.amount : p.amount);  // pago (−) o cobro (+)
+const debt = id => S.debts.find(d => d.id === id);
+const kindOf = d => (d && d.kind === 'meDeben') ? 'meDeben' : 'debo';   // 'debo' = yo debo; 'meDeben' = me deben a mí
+const payAcc = p => p.account ? accName(p.account) : 'Efectivo u otro medio';
+const paidOf = d => sum(S.debtPayments.filter(p => p.debt === d.id));
+const leftOf = d => Math.round(((+d.amount || 0) - paidOf(d)) * 100) / 100;
 const listOf = kind => ({ expense: S.expenses, income: S.incomes, transfer: S.transfers }[kind]);
 
 /* =====================================================================
@@ -367,7 +385,7 @@ const localOk = () => { try { return localStorage.getItem(LOCAL_FLAG) === '1'; }
 const session = { status: CLOUD ? 'loading' : (localOk() ? 'ready' : 'setup'), user: null };
 const authDraft = { mode: 'in', email: '' };
 const synced = new Set();
-const SYNC_KEYS = ['accounts', 'incomes', 'expenses', 'transfers', 'categories'];
+const SYNC_KEYS = [...DATA_COLS, 'categories'];
 const plain = ({ id, ...rest }) => JSON.parse(JSON.stringify(rest));   // sin undefined (Firestore no lo acepta)
 const shortName = email => { const n = (email || '').split('@')[0].split(/[._\-0-9]/)[0]; return n ? cap(n) : null; };
 
@@ -391,7 +409,7 @@ const Cloud = {
   subscribe(onData, onError) {
     this.stop();
     const { collection, onSnapshot, doc } = this.m, db = this.db;
-    this.unsubs = ['accounts', 'incomes', 'expenses', 'transfers'].map(col =>
+    this.unsubs = DATA_COLS.map(col =>
       onSnapshot(collection(db, col), snap => onData(col, snap.docs.map(d => ({ id: d.id, ...d.data() }))), onError));
     this.unsubs.push(onSnapshot(doc(db, 'meta', 'config'), snap => onData('categories', snap.exists() ? snap.data().categories : null), onError));
   },
@@ -402,9 +420,9 @@ const Cloud = {
   setCategories(list) { const { setDoc, doc } = this.m; setDoc(doc(this.db, 'meta', 'config'), { categories: list }, { merge: true }).catch(e => this.fail(e)); },
   async replaceAll(next, old) {
     const { writeBatch, doc } = this.m, db = this.db, ops = [];
-    ['accounts', 'incomes', 'expenses', 'transfers'].forEach(col => {
-      old[col].forEach(x => ops.push(b => b.delete(doc(db, col, x.id))));
-      next[col].forEach(x => ops.push(b => b.set(doc(db, col, x.id), plain(x))));
+    DATA_COLS.forEach(col => {
+      (old[col] || []).forEach(x => ops.push(b => b.delete(doc(db, col, x.id))));
+      (next[col] || []).forEach(x => ops.push(b => b.set(doc(db, col, x.id), plain(x))));
     });
     ops.push(b => b.set(doc(db, 'meta', 'config'), { categories: next.categories }, { merge: true }));
     try {
@@ -492,6 +510,7 @@ const I = {
   plusS: svg('<path d="M12 5v14M5 12h14"/>', 20),
   left: svg('<path d="M15 6l-6 6 6 6"/>'),
   right: svg('<path d="M9 6l6 6-6 6"/>'),
+  debt: svg('<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>'),
   x: svg('<path d="M6 6l12 12M18 6L6 18"/>')
 };
 const NAV = [
@@ -499,6 +518,7 @@ const NAV = [
   { id: 'gastos',   label: 'Gastos',         short: 'Gastos',   icon: I.out },
   { id: 'ingresos', label: 'Ingresos',       short: 'Ingresos', icon: I.in },
   { id: 'transf',   label: 'Transferencias', short: 'Transf.',  icon: I.swap },
+  { id: 'deudas',   label: 'Deudas',         short: 'Deudas',   icon: I.debt },
   { id: 'cuentas',  label: 'Cuentas',        short: 'Cuentas',  icon: I.bank }
 ];
 const MONTH_TABS = ['gastos', 'ingresos', 'transf'];
@@ -524,7 +544,7 @@ function shell(inner) {
   </aside>
   <div class="content">
     <header class="topbar">
-      ${MONTH_TABS.includes(ui.tab) ? monthStepper() : `<span class="top-title">${ui.tab === 'panel' ? 'Mis gastos' : tab.label}</span>`}
+      ${MONTH_TABS.includes(ui.tab) ? monthStepper() : (ui.tab === 'panel' ? '<span class="top-title">Mis gastos</span>' : '<span></span>')}
       <button class="icon-btn" data-action="settings" aria-label="Ajustes y datos">${I.gear}</button>
     </header>
     <main class="main${wide}" id="main">${inner}</main>
@@ -575,7 +595,12 @@ function viewPanel() {
 
   const mi = S.incomes.filter(x => inMonth(x.date, m));
   const me = S.expenses.filter(x => inMonth(x.date, m));
-  const inc = sum(mi), exp = sum(me), bal = inc - exp;
+  const mp = S.debtPayments.filter(x => x.account && inMonth(x.date, m));
+  const paidOut = sum(mp.filter(x => kindOf(debt(x.debt)) === 'debo'));
+  const collected = sum(mp.filter(x => kindOf(debt(x.debt)) === 'meDeben'));
+  const inc = sum(mi), exp = sum(me), bal = inc - exp - paidOut + collected;
+  const owed = sum(S.debts.filter(d => kindOf(d) === 'debo' && leftOf(d) > 0), leftOf);
+  const owedToMe = sum(S.debts.filter(d => kindOf(d) === 'meDeben' && leftOf(d) > 0), leftOf);
   const byCat = Object.entries(me.reduce((o, x) => { o[x.category] = (o[x.category] || 0) + (+x.amount); return o; }, {}))
     .sort((a, b) => b[1] - a[1]);
   const max = byCat.length ? byCat[0][1] : 0;
@@ -602,7 +627,13 @@ function viewPanel() {
           <div class="stat"><span class="stat-l">Balance</span><strong class="${bal < 0 ? 'out' : 'in'}">${money0(bal)}</strong></div>
         </div>
         ${inc === 0 ? `<p class="hint">Todavía no cargaste ingresos de ${monthLabel(m)}. <button class="link" data-action="add-kind" data-kind="income">Cargar un ingreso</button></p>` : ''}
+        ${paidOut > 0 ? `<p class="hint">El balance incluye ${money0(paidOut)} pagados de deudas este mes.</p>` : ''}
+        ${collected > 0 ? `<p class="hint">El balance incluye ${money0(collected)} cobrados de préstamos este mes.</p>` : ''}
       </section>
+      ${owed > 0 || owedToMe > 0 ? `<button class="debt-card" data-action="tab" data-tab="deudas"><span class="dc-cols">
+        ${owed > 0 ? `<span><span class="stat-l">Debés</span><strong class="out">${money0(owed)}</strong></span>` : ''}
+        ${owedToMe > 0 ? `<span><span class="stat-l">Te deben</span><strong class="in">${money0(owedToMe)}</strong></span>` : ''}
+      </span><span class="small">Ver detalle</span></button>` : ''}
 
       <section class="card">
         <h2 style="margin-bottom:14px">Gastos por categoría</h2>
@@ -703,6 +734,50 @@ function viewAccounts() {
   <p class="hint">El saldo de cada cuenta se calcula solo: saldo inicial + ingresos − gastos ± transferencias.</p>`;
 }
 
+const DK = {
+  debo: {
+    seg: 'Debo', head: 'Deudas', doneOne: 'Saldada', doneH: 'Saldadas', verb: 'pagaste', add: 'Nueva deuda',
+    empty: 'Anotá lo que pediste prestado o le debés a alguien.<br>Cuando pagues, elegís desde qué cuenta sale la plata y la deuda baja sola.',
+    missing: 'te falta pagar', finished: 'se pagó el total de', payBtn: 'Registrar pago', listH: 'Pagos hechos', none: 'Todavía no registraste pagos.'
+  },
+  meDeben: {
+    seg: 'Me deben', head: 'Me deben', doneOne: 'Cobrada', doneH: 'Cobradas', verb: 'cobraste', add: 'Anotar lo que me deben',
+    empty: 'Anotá la plata que le prestaste a alguien o que te deben.<br>Cuando te la devuelvan, elegís en qué cuenta entra y lo que te deben baja solo.',
+    missing: 'te falta cobrar', finished: 'se cobró el total de', payBtn: 'Registrar cobro', listH: 'Cobros hechos', none: 'Todavía no registraste cobros.'
+  }
+};
+
+function viewDebts() {
+  const k = ui.debtTab, T = DK[k];
+  const byDate = (a, b) => b.date.localeCompare(a.date);
+  const all = S.debts.filter(d => kindOf(d) === k);
+  const open = all.filter(d => leftOf(d) > 0).sort(byDate);
+  const done = all.filter(d => leftOf(d) <= 0).sort(byDate);
+  const tot = kk => sum(S.debts.filter(d => kindOf(d) === kk && leftOf(d) > 0), leftOf);
+  const row = d => {
+    const paid = paidOf(d), left = leftOf(d), pct = d.amount ? Math.min(100, paid / d.amount * 100) : 0;
+    return `
+    <button class="row" data-action="debt-open" data-id="${d.id}">
+      <span class="row-main">
+        <span class="row-title">${esc(d.person)}</span>
+        <span class="row-sub"><span>${esc(d.reason || 'Sin motivo')}</span><span>${paid > 0 && left > 0 ? `${T.verb} ${money0(paid)} de ${money0(d.amount)}` : `de ${money0(d.amount)}`}</span></span>
+        <span class="track debt-bar"><i style="width:${pct}%;background:var(--in)"></i></span>
+      </span>
+      <span class="row-amt ${left > 0 && k === 'debo' ? 'out' : 'in'}">${left > 0 ? money(left) : T.doneOne}</span>
+    </button>`;
+  };
+  return `
+  <div class="page-head"><h1>${k === 'debo' ? 'Deudas' : 'Me deben'}</h1><strong class="${k === 'debo' ? 'out' : 'in'}">${money0(tot(k))}</strong></div>
+  <div class="seg" role="group" aria-label="Tipo de deuda">
+    ${['debo', 'meDeben'].map(x => `<button type="button" data-action="debt-tab" data-kind="${x}" aria-pressed="${x === k}">${DK[x].seg}${tot(x) > 0 ? ' ' + money0(tot(x)) : ''}</button>`).join('')}
+  </div>
+  ${all.length ? '' : `<div class="empty"><p>${T.empty}</p>
+    <button class="btn primary" data-action="debt-edit" data-kind="${k}">${I.plusS} ${T.add}</button></div>`}
+  ${open.length ? `<div class="list">${open.map(row).join('')}</div>` : ''}
+  ${done.length ? `<h2 class="sub-h">${T.doneH}</h2><div class="list">${done.map(row).join('')}</div>` : ''}
+  ${all.length ? `<div class="actions section-gap"><button class="btn primary" data-action="debt-edit" data-kind="${k}">${I.plusS} ${T.add}</button></div>` : ''}`;
+}
+
 function renderGate() {
   const up = authDraft.mode === 'up';
   const box = (h, p, extra = '') => `<div class="gate"><section class="welcome"><h1>${h}</h1><p>${p}</p>${extra}</section></div>`;
@@ -736,7 +811,7 @@ function render() {
     if (f && $('#' + f)) $('#' + f).focus();
     return;
   }
-  const views = { panel: viewPanel, gastos: viewExpenses, ingresos: viewIncomes, transf: viewTransfers, cuentas: viewAccounts };
+  const views = { panel: viewPanel, gastos: viewExpenses, ingresos: viewIncomes, transf: viewTransfers, deudas: viewDebts, cuentas: viewAccounts };
   const y = window.scrollY;
   $('#app').innerHTML = shell(views[ui.tab]());
   window.scrollTo(0, y);
@@ -883,11 +958,128 @@ function saveAccount(form) {
 }
 
 function deleteAccount(id) {
-  const used = [S.incomes, S.expenses].some(l => l.some(x => x.account === id)) || S.transfers.some(x => x.from === id || x.to === id);
+  const used = [S.incomes, S.expenses].some(l => l.some(x => x.account === id)) || S.transfers.some(x => x.from === id || x.to === id)
+    || S.debts.some(x => x.account === id) || S.debtPayments.some(x => x.account === id);
   if (used) { toast('Esa cuenta tiene movimientos. Para borrarla, primero eliminá o cambiá esos movimientos.'); return; }
   if (!confirm('¿Eliminar esta cuenta?')) return;
   removeDoc('accounts', id);
   closeDialog(); render(); toast('Cuenta eliminada');
+}
+
+function openDebtDetail(id) {
+  const d = debt(id); if (!d) { closeDialog(); return; }
+  const k = kindOf(d), T = DK[k];
+  const paid = paidOf(d), left = leftOf(d), pct = d.amount ? Math.min(100, paid / d.amount * 100) : 0;
+  const pays = S.debtPayments.filter(p => p.debt === id).sort((a, b) => b.date.localeCompare(a.date));
+  const where = d.account ? `, ${k === 'debo' ? 'entró a' : 'salió de'} ${esc(accName(d.account))}` : '';
+  openDialog(`
+    <div class="sheet-head"><h2 id="dlg-title">${esc(d.person)}</h2>
+      <button class="icon-btn" data-action="close" aria-label="Cerrar">${I.x}</button></div>
+    <p class="small">${esc(d.reason || 'Sin motivo')} &nbsp;(${dayLabel(d.date)}${where})</p>
+    <div class="debt-sum"><strong class="${left > 0 && k === 'debo' ? 'out' : 'in'}">${left > 0 ? money(left) : T.doneOne}</strong>
+      <span class="small">${left > 0 ? `${T.missing}, de ${money(d.amount)}` : `${T.finished} ${money(d.amount)}`}</span></div>
+    <div class="track"><i style="width:${pct}%;background:var(--in)"></i></div>
+    <div class="actions" style="margin-top:16px">
+      ${left > 0 ? `<button class="btn primary" data-action="pay-new" data-debt="${d.id}">${T.payBtn}</button>` : ''}
+      <button class="btn" data-action="debt-edit" data-id="${d.id}">Editar</button>
+    </div>
+    <h3 class="sub-h">${T.listH}</h3>
+    ${pays.length ? `<div class="list">${pays.map(x => `
+      <button class="row" data-action="pay-edit" data-debt="${d.id}" data-id="${x.id}">
+        <span class="row-main"><span class="row-title">${esc(x.note || (k === 'debo' ? 'Pago' : 'Cobro'))}</span>
+          <span class="row-sub"><span>${dayLabel(x.date)}</span><span>${k === 'debo' ? 'desde' : 'entró a'} ${esc(payAcc(x))}</span>${x.by ? `<span>${esc(x.by)}</span>` : ''}</span></span>
+        <span class="row-amt in">${money(x.amount)}</span>
+      </button>`).join('')}</div>` : `<p class="small">${T.none}</p>`}`);
+}
+
+function openDebt(id, kind, keep) {
+  const d = id ? debt(id) : null, k = d ? kindOf(d) : (kind || ui.debtTab), debo = k === 'debo';
+  const val = (f, dflt = '') => d ? d[f] ?? dflt : (keep?.[f] ?? dflt);
+  openDialog(`
+    <div class="sheet-head"><h2 id="dlg-title">${d ? (debo ? 'Editar deuda' : 'Editar lo que me deben') : (debo ? 'Nueva deuda' : 'Lo que me deben')}</h2>
+      <button class="icon-btn" data-action="close" aria-label="Cerrar">${I.x}</button></div>
+    ${d ? '' : `<div class="seg" role="group" aria-label="Tipo">
+      <button type="button" data-action="debt-kind" data-kind="debo" aria-pressed="${debo}">Yo debo</button>
+      <button type="button" data-action="debt-kind" data-kind="meDeben" aria-pressed="${!debo}">Me deben</button></div>`}
+    <form id="debt-form" data-id="${d?.id || ''}" data-kind="${k}" novalidate>
+      <div class="field"><label for="d-amount">${debo ? 'Cuánto debés' : 'Cuánto te deben'}</label>
+        <div class="amount"><span>$</span><input id="d-amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="0" value="${d ? String(d.amount).replace('.', ',') : esc(keep?.amount)}"></div></div>
+      <div class="field"><label for="d-person">${debo ? '¿A quién se lo debés?' : '¿Quién te debe?'}</label><input id="d-person" name="person" autocomplete="off" placeholder="${debo ? 'Ej: Mamá, Banco, Juan' : 'Ej: Juan, un amigo'}" value="${esc(val('person'))}"></div>
+      <div class="field"><label for="d-reason">Motivo</label><input id="d-reason" name="reason" autocomplete="off" placeholder="${debo ? 'Ej: Préstamo para el auto' : 'Ej: Le presté para el alquiler'}" value="${esc(val('reason'))}"></div>
+      <div class="field"><label for="d-date">${debo ? 'Fecha en que te prestaron o surgió la deuda' : 'Fecha en que le prestaste o surgió'}</label><input id="d-date" name="date" type="date" value="${val('date', todayISO())}"></div>
+      <div class="field"><label for="d-acc">${debo ? '¿La plata entró a una de tus cuentas?' : '¿La plata salió de una de tus cuentas?'}</label>
+        <select id="d-acc" name="account"><option value="">${debo ? 'No, no entró a ninguna cuenta' : 'No, no salió de ninguna cuenta'}</option>${accOpts(d?.account)}</select>
+        <span class="small">${debo
+          ? 'Si te prestaron plata y la recibiste en una cuenta (si fue en efectivo, elegí tu cuenta de efectivo), el saldo de esa cuenta sube. Si debés por algo que ya compraste o pagaron por vos, dejalo en "No".'
+          : 'Si le prestaste plata desde una de tus cuentas (si fue en efectivo, elegí tu cuenta de efectivo), el saldo de esa cuenta baja. Si no salió de ninguna cuenta que lleves en la app, dejalo en "No".'}</span></div>
+      <p class="err" id="f-err" role="alert" hidden></p>
+      <div class="actions">
+        ${d ? `<button type="button" class="btn danger" data-action="debt-delete" data-id="${d.id}">Eliminar</button>` : ''}
+        <button type="submit" class="btn primary">Guardar</button>
+      </div>
+    </form>`, '#d-amount');
+}
+
+function saveDebt(form) {
+  const v = n => form.elements[n].value, id = form.dataset.id, k = form.dataset.kind;
+  const amount = parseAmount(v('amount')), person = v('person').trim(), date = v('date');
+  if (!(amount > 0)) return formError(form, 'amount', 'Ingresá un monto mayor a cero.');
+  if (!person) return formError(form, 'person', k === 'debo' ? 'Anotá a quién se lo debés.' : 'Anotá quién te debe.');
+  if (!date) return formError(form, 'date', 'Elegí una fecha.');
+  const old = id ? debt(id) : null;
+  if (old && amount < paidOf(old)) return formError(form, 'amount', `Ya ${k === 'debo' ? 'pagaste' : 'cobraste'} ${money(paidOf(old))}; el monto no puede ser menor.`);
+  const full = { ...(old || {}), kind: k, person, reason: v('reason').trim(), amount, date, account: v('account'), id: id || uid() };
+  if (!old?.by && ME) full.by = ME;
+  upsert('debts', full);
+  ui.debtTab = k;
+  render(); toast('Guardado');
+  if (old) openDebtDetail(full.id); else closeDialog();
+}
+
+function openPayment(debtId, payId) {
+  const d = debt(debtId); if (!d) return;
+  if (!S.accounts.length) { toast('Primero creá una cuenta.'); openAccount(); return; }
+  const k = kindOf(d), debo = k === 'debo';
+  const p = payId ? S.debtPayments.find(x => x.id === payId) : null;
+  const max = Math.round((leftOf(d) + (p ? +p.amount : 0)) * 100) / 100;
+  const firstAcc = (S.accounts.find(a => a.type !== 'Reserva') || S.accounts[0])?.id || '';
+  const acc = p ? p.account : (account(S.last.account) ? S.last.account : firstAcc);
+  openDialog(`
+    <div class="sheet-head"><h2 id="dlg-title">${p ? (debo ? 'Editar pago' : 'Editar cobro') : (debo ? 'Pagar a ' : 'Cobrar a ') + (p ? '' : esc(d.person))}</h2>
+      <button class="icon-btn" data-action="close" aria-label="Cerrar">${I.x}</button></div>
+    <form id="payment-form" data-debt="${d.id}" data-id="${p?.id || ''}" data-max="${max}" novalidate>
+      <div class="field"><label for="p-amount">${debo ? `Monto del pago (te faltan ${money(max)})` : `Monto cobrado (faltan cobrar ${money(max)})`}</label>
+        <div class="amount"><span>$</span><input id="p-amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="0" value="${p ? String(p.amount).replace('.', ',') : ''}"></div>
+        <button type="button" class="link link-fill" data-action="pay-all" data-amount="${max}">${debo ? 'Pagar todo lo que falta' : 'Cobrar todo lo que falta'}</button></div>
+      <div class="field"><label for="p-acc">${debo ? 'Sale de la cuenta' : 'Entra a la cuenta'}</label>
+        <select id="p-acc" name="account">${p && !p.account ? '<option value="" selected>Sin cuenta (registro anterior)</option>' : ''}${accOpts(acc)}</select>
+        <span class="small">${debo ? 'Si pagás en efectivo, elegí tu cuenta de efectivo.' : 'Si te pagan en efectivo, elegí tu cuenta de efectivo.'}</span></div>
+      <div class="field"><label for="p-date">Fecha</label><input id="p-date" name="date" type="date" value="${p?.date || todayISO()}"></div>
+      <div class="field"><label for="p-note">Nota (opcional)</label><input id="p-note" name="note" autocomplete="off" placeholder="Ej: Cuota 2" value="${esc(p?.note)}"></div>
+      <p class="err" id="f-err" role="alert" hidden></p>
+      <div class="actions">
+        ${p ? `<button type="button" class="btn danger" data-action="pay-delete" data-debt="${d.id}" data-id="${p.id}">Eliminar</button>` : ''}
+        <button type="submit" class="btn primary">${debo ? 'Guardar pago' : 'Guardar cobro'}</button>
+      </div>
+    </form>`, '#p-amount');
+}
+
+function savePayment(form) {
+  const v = n => form.elements[n].value, id = form.dataset.id, debtId = form.dataset.debt;
+  const k = kindOf(debt(debtId));
+  const max = parseFloat(form.dataset.max), amount = parseAmount(v('amount')), date = v('date');
+  if (!(amount > 0)) return formError(form, 'amount', 'Ingresá un monto mayor a cero.');
+  if (amount > max + 0.001) return formError(form, 'amount', `Es más de lo que te falta ${k === 'debo' ? 'pagar' : 'cobrar'} (${money(max)}).`);
+  if (!date) return formError(form, 'date', 'Elegí una fecha.');
+  const old = id ? S.debtPayments.find(x => x.id === id) : null;
+  if (!v('account') && !(old && !old.account)) return formError(form, 'account', 'Elegí una cuenta (si fue en efectivo, tu cuenta de efectivo).');
+  const full = { ...(old || {}), debt: debtId, account: v('account'), date, amount, note: v('note').trim(), id: id || uid() };
+  if (!old?.by && ME) full.by = ME;
+  upsert('debtPayments', full);
+  if (full.account) S.last.account = full.account;
+  persist();
+  render(); openDebtDetail(debtId);
+  toast(leftOf(debt(debtId)) <= 0 ? (k === 'debo' ? '¡Deuda saldada!' : '¡Cobrado por completo!') : (k === 'debo' ? 'Pago registrado' : 'Cobro registrado'));
 }
 
 function openSettings() {
@@ -929,7 +1121,7 @@ function loadXLSX() {
     document.head.appendChild(s);
   });
 }
-const hasData = () => S.accounts.length || S.incomes.length || S.expenses.length || S.transfers.length;
+const hasData = () => S.accounts.length || S.incomes.length || S.expenses.length || S.transfers.length || S.debts.length;
 
 function toISODate(v) {
   if (typeof v === 'number') return new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 86400000).toISOString().slice(0, 10);
@@ -979,7 +1171,7 @@ async function importXlsx(file) {
   next.expenses.forEach(x => { if (!next.categories.includes(x.category)) next.categories.push(x.category); });
 
   const resumen = `${next.accounts.length} cuentas, ${next.expenses.length} gastos, ${next.incomes.length} ingresos y ${next.transfers.length} transferencias`;
-  if (hasData() && !confirm(`Vas a reemplazar lo que tenés cargado en la app por esto del Excel: ${resumen}${CLOUD ? ' (y lo ve también tu pareja)' : ''}. ¿Seguir?`)) return;
+  if (hasData() && !confirm(`Vas a reemplazar lo que tenés cargado en la app por esto del Excel: ${resumen}${CLOUD ? ' (y lo ve también tu pareja)' : ''}.${S.debts.length ? ' Las deudas cargadas también se borran.' : ''} ¿Seguir?`)) return;
   replaceAll(next); closeDialog(); render();
   toast(`Importé ${resumen}${skipped ? ` (salteé ${skipped} filas incompletas)` : ''}`);
 }
@@ -1001,6 +1193,8 @@ async function exportXlsx() {
   add('Ingresos', [['Fecha', 'Cuenta', 'Concepto', 'Monto'], ...S.incomes.map(x => [d(x.date), accName(x.account), x.concept, x.amount])]);
   add('Consumos', [['Fecha', 'Descripción', 'Categoría', 'Cuenta de pago', 'Monto'], ...S.expenses.map(x => [d(x.date), x.desc, x.category, accName(x.account), x.amount])]);
   add('Transferencias', [['Fecha', 'Cuenta origen', 'Cuenta destino', 'Concepto', 'Monto'], ...S.transfers.map(x => [d(x.date), accName(x.from), accName(x.to), x.concept, x.amount])]);
+  add('Deudas', [['Tipo', 'Fecha', 'Persona', 'Motivo', 'Monto', 'Cuenta involucrada', 'Pagado/cobrado', 'Falta'], ...S.debts.map(x => [kindOf(x) === 'debo' ? 'Debo' : 'Me deben', d(x.date), x.person, x.reason, x.amount, x.account ? accName(x.account) : '', paidOf(x), leftOf(x)])]);
+  add('Pagos y cobros', [['Fecha', 'Persona', 'Cuenta', 'Monto', 'Nota'], ...S.debtPayments.map(x => [d(x.date), debt(x.debt)?.person || '', payAcc(x), x.amount, x.note || ''])]);
   add('Listas', [['Categorías'], ...S.categories.map(c => [c])]);
   XLSX.writeFile(wb, `mis-gastos-${stamp()}.xlsx`, { cellDates: true });
 }
@@ -1040,7 +1234,7 @@ document.addEventListener('click', e => {
     case 'month-next': ui.month = shiftMonth(ui.month, 1); render(); break;
     case 'month-now': ui.month = monthOf(todayISO()); render(); break;
     case 'filter-cat': ui.catFilter = d.cat; render(); break;
-    case 'add': openEntry(tabKind()); break;
+    case 'add': if (ui.tab === 'deudas') openDebt(); else openEntry(tabKind()); break;
     case 'add-kind': openEntry(d.kind); break;
     case 'entry-kind': {
       const f = $('#entry-form');
@@ -1055,6 +1249,30 @@ document.addEventListener('click', e => {
         closeDialog(); render(); toast(`${cap(KIND[d.kind])} eliminado`);
       }
       break;
+    case 'debt-open': openDebtDetail(d.id); break;
+    case 'debt-edit': openDebt(d.id, d.kind); break;
+    case 'debt-tab': ui.debtTab = d.kind; render(); break;
+    case 'debt-kind': {
+      const f = $('#debt-form');
+      openDebt(null, d.kind, f ? { amount: f.elements.amount.value, person: f.elements.person.value, reason: f.elements.reason.value, date: f.elements.date.value } : null);
+      break;
+    }
+    case 'pay-new': openPayment(d.debt); break;
+    case 'pay-edit': openPayment(d.debt, d.id); break;
+    case 'pay-all': { const i = $('#p-amount'); i.value = String(d.amount).replace('.', ','); i.focus(); break; }
+    case 'pay-delete':
+      if (confirm(kindOf(debt(d.debt)) === 'debo' ? '¿Eliminar este pago? La cuenta recupera esa plata y la deuda vuelve a subir.' : '¿Eliminar este cobro? La cuenta pierde esa plata y lo que te deben vuelve a subir.')) {
+        removeDoc('debtPayments', d.id); render(); openDebtDetail(d.debt); toast('Pago eliminado');
+      }
+      break;
+    case 'debt-delete': {
+      const n = S.debtPayments.filter(p => p.debt === d.id).length;
+      if (confirm(n ? `¿Eliminar el registro? Se borran también sus ${n} ${kindOf(debt(d.id)) === 'debo' ? 'pagos, y las cuentas desde donde pagaste recuperan esa plata' : 'cobros, y las cuentas donde cobraste pierden esa plata'}.` : '¿Eliminar este registro?')) {
+        S.debtPayments.filter(p => p.debt === d.id).forEach(p => removeDoc('debtPayments', p.id));
+        removeDoc('debts', d.id); closeDialog(); render(); toast('Deuda eliminada');
+      }
+      break;
+    }
     case 'acc-open': openAccount(d.id); break;
     case 'acc-delete': deleteAccount(d.id); break;
     case 'settings': openSettings(); break;
@@ -1095,6 +1313,8 @@ dlg.addEventListener('submit', e => {
   const f = e.target;
   if (f.id === 'entry-form') saveEntry(f, false);
   else if (f.id === 'account-form') saveAccount(f);
+  else if (f.id === 'debt-form') saveDebt(f);
+  else if (f.id === 'payment-form') savePayment(f);
   else if (f.id === 'cat-form') {
     const name = f.elements.cat.value.trim();
     if (!name) return;
